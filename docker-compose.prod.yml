@@ -1,0 +1,118 @@
+# Omnigate production stack: Caddy (auto HTTPS) -> omnigate -> postgres + redis.
+#
+# Unlike docker-compose.yml, this builds the image from local source so that
+# Omnigate branding and any local changes are actually included. Secrets come
+# from .env, which is never committed. See docs/installation/VPS.md.
+
+services:
+  omnigate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: omnigate:local
+    container_name: omnigate
+    restart: always
+    command: --log-dir /app/logs
+    expose:
+      - "3000"
+    volumes:
+      - ./data:/data
+      - ./logs:/app/logs
+    environment:
+      - SQL_DSN=postgresql://omnigate:${POSTGRES_PASSWORD}@postgres:5432/omnigate
+      - REDIS_CONN_STRING=redis://:${REDIS_PASSWORD}@redis:6379
+      - SESSION_SECRET=${SESSION_SECRET}
+      - CRYPTO_SECRET=${CRYPTO_SECRET}
+      # Secure cookies + strict OriginGuard. TRUSTED_URL is mandatory once
+      # SECURE is true, and must be the exact HTTPS origin users browse.
+      - SESSION_COOKIE_SECURE=true
+      - SESSION_COOKIE_TRUSTED_URL=https://${DOMAIN}
+      # Caddy is the only proxy in front; trusting the compose network lets the
+      # backend read the real client IP, which rate limiting and audit logs need.
+      - TRUSTED_PROXIES=172.16.0.0/12
+      - TZ=${TZ:-Asia/Shanghai}
+      - ERROR_LOG_ENABLED=true
+      - BATCH_UPDATE_ENABLED=true
+      - NODE_NAME=omnigate-ams-1
+      # Long reasoning responses can exceed the 300s default.
+      - STREAMING_TIMEOUT=600
+      # Vision requests carry base64 images; 32MB is easy to exceed.
+      - MAX_REQUEST_BODY_MB=64
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - omnigate-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DOMAIN=${DOMAIN}
+      - ACME_EMAIL=${ACME_EMAIL}
+    depends_on:
+      - omnigate
+    networks:
+      - omnigate-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: omnigate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: omnigate
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - omnigate-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omnigate -d omnigate"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--save", "900", "1"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - omnigate-network
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+volumes:
+  pg_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  omnigate-network:
+    driver: bridge

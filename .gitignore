@@ -11,6 +11,10 @@ logs
 web/dist
 web/node_modules
 .env
+
+# Runtime volume mounted by docker-compose.prod.yml
+/data/
+
 one-api
 new-api
 /__debug_bin*
