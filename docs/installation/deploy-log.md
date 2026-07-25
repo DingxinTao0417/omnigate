@@ -238,8 +238,50 @@ done
 - 项目**没有渠道级并发限制**，只能用「速率限制」板块的用户级配额保护上游。注意
   它按用户账号计数，多账号不互相限制。
 
+## 八、数据库备份
+
+`bin/backup-db.sh` 导出 gzip 压缩的 dump 到 `/opt/omnigate/backups/`，保留
+14 天。先手动跑一次：
+
+```bash
+cd /opt/omnigate && ./bin/backup-db.sh
+```
+
+**验证备份可用** —— 没验证过的备份等于没有备份：
+
+```bash
+gunzip -c /opt/omnigate/backups/omnigate-*.sql.gz | grep -c "CREATE TABLE"
+```
+
+首次上线时返回 34（表数量），文件 23 KB。
+
+加 cron，每天 4:17（避开整点，此时负载低）：
+
+```bash
+mkdir -p /opt/omnigate/logs
+crontab -l 2>/dev/null | { cat; echo "17 4 * * * /opt/omnigate/bin/backup-db.sh >> /opt/omnigate/logs/backup.log 2>&1"; } | crontab -
+```
+
+cron 的 PATH 比登录 shell 窄，脚本依赖 `docker compose`，所以要模拟 cron 环境
+验一次，否则可能第二天才发现没跑：
+
+```bash
+env -i PATH=/usr/bin:/bin /opt/omnigate/bin/backup-db.sh
+```
+
+恢复：
+
+```bash
+gunzip -c backups/omnigate-20260725-230354.sql.gz \
+  | docker compose -f docker-compose.prod.yml exec -T postgres psql -U omnigate -d omnigate
+```
+
+dump 用 `--clean --if-exists` 生成，会先删除同名对象再重建，可直接覆盖恢复。
+
 ## 待办
 
-- 数据库备份未配置。`pg_dump` 命令见 VPS.md，建议加每日 cron。
+- 备份只在本机，防误删和逻辑损坏，**防不了整机故障**。异地副本可从本机
+  `scp root@23.94.105.187:/opt/omnigate/backups/*.sql.gz ~/omnigate-backups/`，
+  或用 rclone 同步到对象存储。
 - AGPL-3.0 要求对外提供服务时向使用者提供源码。仓库当前为 private，正式开放前
   需确定履行方式（转 public、站内放源码入口，或联系上游取得商业授权）。
