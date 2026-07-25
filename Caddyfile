@@ -2,6 +2,12 @@
 	email {$ACME_EMAIL}
 }
 
+# Redirect rather than proxy: the backend pins refresh cookies and OriginGuard
+# to a single origin, so www must not serve the app under its own hostname.
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
 {$DOMAIN} {
 	encode zstd gzip
 
