@@ -14,6 +14,8 @@ web/node_modules
 
 # Runtime volume mounted by docker-compose.prod.yml
 /data/
+/backups/
+/build.log
 
 one-api
 new-api
