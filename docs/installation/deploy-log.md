@@ -155,7 +155,7 @@ cp .env.prod.example .env
 for k in POSTGRES_PASSWORD REDIS_PASSWORD SESSION_SECRET CRYPTO_SECRET; do
   sed -i "s|^$k=.*|$k=$(openssl rand -hex 32)|" .env
 done
-sed -i 's|^ACME_EMAIL=.*|ACME_EMAIL=taodingxin0417@gmail.com|' .env
+sed -i 's|^ACME_EMAIL=.*|ACME_EMAIL=2082577455@qq.com|' .env
 chmod 600 .env
 ```
 

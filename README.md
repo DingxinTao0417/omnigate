@@ -1,3 +1,7 @@
+> **这是 Omnigate 部署的上游文档。** 本仓库是 [new-api](https://github.com/QuantumNous/new-api)
+> 的 fork，Omnigate 自身的说明、部署配置与与上游的差异见 **[OMNIGATE.md](./OMNIGATE.md)**。
+> 下方内容为上游 new-api 的原始 README，其中的镜像地址与截图指向上游项目。
+
 <div align="center">
 
 ![new-api](/web/public/logo.png)
