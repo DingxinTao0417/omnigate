@@ -23,6 +23,16 @@ import { Button } from '@/components/ui/button'
 
 import type { GalleryImage } from '../types'
 
+function triggerDownload(href: string, name: string) {
+  const link = document.createElement('a')
+  link.href = href
+  link.download = name
+  link.rel = 'noopener'
+  document.body.append(link)
+  link.click()
+  link.remove()
+}
+
 interface ImageGalleryProps {
   images: GalleryImage[]
   isGenerating: boolean
@@ -31,14 +41,20 @@ interface ImageGalleryProps {
 export function ImageGallery(props: ImageGalleryProps) {
   const { t } = useTranslation()
 
-  const handleDownload = (image: GalleryImage) => {
-    const link = document.createElement('a')
-    link.href = image.src
-    link.download = `omnigate-${image.model}-${image.createdAt}.png`
-    link.rel = 'noopener'
-    document.body.append(link)
-    link.click()
-    link.remove()
+  // The download attribute is ignored for cross-origin URLs, so fetch the bytes
+  // and hand the browser a blob it will actually save.
+  const handleDownload = async (image: GalleryImage) => {
+    const name = `omnigate-${image.model}-${image.createdAt}.png`
+    try {
+      const res = await fetch(image.src)
+      const blob = await res.blob()
+      const href = URL.createObjectURL(blob)
+      triggerDownload(href, name)
+      URL.revokeObjectURL(href)
+    } catch {
+      // Falling back to a new tab still lets the user save it manually.
+      window.open(image.src, '_blank', 'noopener')
+    }
   }
 
   if (!props.images.length) {

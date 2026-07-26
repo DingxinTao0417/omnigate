@@ -5231,6 +5231,10 @@
     "Image generation failed": "图像生成失败",
     "The response contained no images": "响应中没有图像",
     "Generate images from text prompts.": "通过文本提示词生成图像。",
-    "Text-to-image workspace": "文生图工作台"
+    "Text-to-image workspace": "文生图工作台",
+    "Resolution": "分辨率",
+    "Submitting task": "正在提交任务",
+    "Waiting for the image": "等待生成结果",
+    "Timed out waiting for the image": "等待生成结果超时"
   }
 }

@@ -31,28 +31,33 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 
-import { COUNT_OPTIONS, QUALITY_OPTIONS, SIZE_OPTIONS } from '../constants'
+import { FOUR_K_RATIOS, QUALITY_OPTIONS } from '../constants'
+import type { GenerationParams, ImageModelCapability } from '../types'
 
 interface GenerationFormProps {
-  prompt: string
-  model: string
-  size: string
-  quality: string
-  count: number
+  params: GenerationParams
+  capability: ImageModelCapability
   models: string[]
   isLoadingModels: boolean
   isGenerating: boolean
-  onPromptChange: (value: string) => void
-  onModelChange: (value: string) => void
-  onSizeChange: (value: string) => void
-  onQualityChange: (value: string) => void
-  onCountChange: (value: number) => void
+  statusText: string
+  onChange: (patch: Partial<GenerationParams>) => void
   onSubmit: () => void
   onStop: () => void
 }
 
 export function GenerationForm(props: GenerationFormProps) {
   const { t } = useTranslation()
+  const { params, capability } = props
+
+  // 4K is only accepted for the wide and tall ratios, so hide the rest once
+  // the user picks it rather than letting upstream reject the request.
+  const ratios =
+    params.resolution === '4k'
+      ? capability.ratios.filter((ratio) => FOUR_K_RATIOS.includes(ratio))
+      : capability.ratios
+
+  const counts = Array.from({ length: capability.maxCount }, (_, i) => i + 1)
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
@@ -67,11 +72,12 @@ export function GenerationForm(props: GenerationFormProps) {
         <Label htmlFor='image-prompt'>{t('Prompt')}</Label>
         <Textarea
           id='image-prompt'
-          value={props.prompt}
-          onChange={(event) => props.onPromptChange(event.target.value)}
+          value={params.prompt}
+          onChange={(event) => props.onChange({ prompt: event.target.value })}
           onKeyDown={handleKeyDown}
           placeholder={t('Describe the image you want to generate')}
           rows={6}
+          maxLength={2000}
           className='resize-none'
         />
       </div>
@@ -79,8 +85,8 @@ export function GenerationForm(props: GenerationFormProps) {
       <div className='flex flex-col gap-2'>
         <Label htmlFor='image-model'>{t('Model')}</Label>
         <Select
-          value={props.model}
-          onValueChange={(value) => props.onModelChange(value ?? '')}
+          value={params.model}
+          onValueChange={(value) => props.onChange({ model: value ?? '' })}
         >
           <SelectTrigger id='image-model'>
             <SelectValue
@@ -101,18 +107,18 @@ export function GenerationForm(props: GenerationFormProps) {
 
       <div className='grid grid-cols-2 gap-3'>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='image-size'>{t('Aspect ratio')}</Label>
+          <Label htmlFor='image-ratio'>{t('Aspect ratio')}</Label>
           <Select
-            value={props.size}
-            onValueChange={(value) => props.onSizeChange(value ?? 'auto')}
+            value={params.size}
+            onValueChange={(value) => props.onChange({ size: value ?? '1:1' })}
           >
-            <SelectTrigger id='image-size'>
+            <SelectTrigger id='image-ratio'>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {SIZE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.ratio ?? t('Auto')}
+              {ratios.map((ratio) => (
+                <SelectItem key={ratio} value={ratio}>
+                  {ratio}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -120,18 +126,20 @@ export function GenerationForm(props: GenerationFormProps) {
         </div>
 
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='image-quality'>{t('Quality')}</Label>
+          <Label htmlFor='image-resolution'>{t('Resolution')}</Label>
           <Select
-            value={props.quality}
-            onValueChange={(value) => props.onQualityChange(value ?? 'auto')}
+            value={params.resolution}
+            onValueChange={(value) =>
+              props.onChange({ resolution: value ?? '1k' })
+            }
           >
-            <SelectTrigger id='image-quality'>
+            <SelectTrigger id='image-resolution'>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {QUALITY_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {t(option.labelKey)}
+              {capability.resolutions.map((resolution) => (
+                <SelectItem key={resolution} value={resolution}>
+                  {resolution.toUpperCase()}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -139,23 +147,52 @@ export function GenerationForm(props: GenerationFormProps) {
         </div>
       </div>
 
-      <div className='flex flex-col gap-2'>
-        <Label htmlFor='image-count'>{t('Number of images')}</Label>
-        <Select
-          value={String(props.count)}
-          onValueChange={(value) => props.onCountChange(Number(value ?? 1))}
-        >
-          <SelectTrigger id='image-count'>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {COUNT_OPTIONS.map((value) => (
-              <SelectItem key={value} value={String(value)}>
-                {value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className='grid grid-cols-2 gap-3'>
+        {capability.supportsQuality && (
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='image-quality'>{t('Quality')}</Label>
+            <Select
+              value={params.quality}
+              onValueChange={(value) =>
+                props.onChange({ quality: value ?? 'auto' })
+              }
+            >
+              <SelectTrigger id='image-quality'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {QUALITY_OPTIONS.map((quality) => (
+                  <SelectItem key={quality} value={quality}>
+                    {t(qualityLabel(quality))}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {capability.maxCount > 1 && (
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='image-count'>{t('Number of images')}</Label>
+            <Select
+              value={String(params.count)}
+              onValueChange={(value) =>
+                props.onChange({ count: Number(value ?? 1) })
+              }
+            >
+              <SelectTrigger id='image-count'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {counts.map((count) => (
+                  <SelectItem key={count} value={String(count)}>
+                    {count}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {props.isGenerating ? (
@@ -166,7 +203,7 @@ export function GenerationForm(props: GenerationFormProps) {
       ) : (
         <Button
           onClick={props.onSubmit}
-          disabled={!props.prompt.trim() || !props.model}
+          disabled={!params.prompt.trim() || !params.model}
           className='w-full'
         >
           <ImagePlus className='size-4' />
@@ -177,9 +214,22 @@ export function GenerationForm(props: GenerationFormProps) {
       {props.isGenerating && (
         <div className='text-muted-foreground flex items-center justify-center gap-2 text-sm'>
           <Spinner className='size-4' />
-          {t('Generating, this may take a while')}
+          {props.statusText || t('Generating, this may take a while')}
         </div>
       )}
     </div>
   )
+}
+
+function qualityLabel(quality: string): string {
+  switch (quality) {
+    case 'low':
+      return 'Low'
+    case 'medium':
+      return 'Medium'
+    case 'high':
+      return 'High'
+    default:
+      return 'Auto'
+  }
 }

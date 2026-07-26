@@ -31,6 +31,16 @@ func SetVideoRouter(router *gin.Engine) {
 		videoV1Router.GET("/videos/:task_id", controller.RelayTaskFetch)
 	}
 
+	// Asynchronous image generation, for upstreams that return a task id
+	// instead of the image itself.
+	imageTaskRouter := router.Group("/v1")
+	imageTaskRouter.Use(middleware.RouteTag("relay"))
+	imageTaskRouter.Use(middleware.TokenAuth(), middleware.Distribute())
+	{
+		imageTaskRouter.POST("/images/tasks", controller.RelayTask)
+		imageTaskRouter.GET("/images/tasks/:task_id", controller.RelayTaskFetch)
+	}
+
 	klingV1Router := router.Group("/kling/v1")
 	klingV1Router.Use(middleware.RouteTag("relay"))
 	klingV1Router.Use(middleware.KlingRequestConvert(), middleware.TokenAuth(), middleware.Distribute())

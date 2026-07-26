@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -25,52 +25,87 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 
 import { GenerationForm } from './components/generation-form'
 import { ImageGallery } from './components/image-gallery'
-import { DEFAULT_IMAGE_MODEL } from './constants'
+import {
+  DEFAULT_CAPABILITY,
+  DEFAULT_IMAGE_MODEL,
+  FOUR_K_RATIOS,
+  MODEL_CAPABILITIES,
+} from './constants'
 import { useImageGeneration, useImageModels } from './hooks'
+import type { GenerationParams } from './types'
+
+const INITIAL_PARAMS: GenerationParams = {
+  model: '',
+  prompt: '',
+  size: '1:1',
+  resolution: '1k',
+  quality: 'auto',
+  count: 1,
+}
 
 export function ImageGeneration() {
   const { t } = useTranslation()
   const { models, isLoading: isLoadingModels } = useImageModels()
-  const { images, isGenerating, generate, stop, clear } = useImageGeneration()
+  const { images, isGenerating, statusText, generate, stop, clear } =
+    useImageGeneration()
+  const [params, setParams] = useState<GenerationParams>(INITIAL_PARAMS)
 
-  const [prompt, setPrompt] = useState('')
-  const [model, setModel] = useState('')
-  const [size, setSize] = useState('auto')
-  const [quality, setQuality] = useState('auto')
-  const [count, setCount] = useState(1)
+  const capability = useMemo(
+    () => MODEL_CAPABILITIES[params.model] ?? DEFAULT_CAPABILITY,
+    [params.model]
+  )
 
-  // Pick a starting model once the list arrives, preferring the configured
-  // default when the user actually has access to it.
   useEffect(() => {
-    if (model || !models.length) return
-    setModel(
-      models.includes(DEFAULT_IMAGE_MODEL) ? DEFAULT_IMAGE_MODEL : models[0]
-    )
-  }, [model, models])
+    if (params.model || !models.length) return
+    setParams((prev) => ({
+      ...prev,
+      model: models.includes(DEFAULT_IMAGE_MODEL)
+        ? DEFAULT_IMAGE_MODEL
+        : models[0],
+    }))
+  }, [params.model, models])
 
-  const handleSubmit = () => {
-    generate({ model, prompt, n: count, size, quality })
-  }
+  // Switching models can leave a selection the new model rejects, so pull the
+  // affected fields back into its supported range.
+  useEffect(() => {
+    setParams((prev) => {
+      const next = { ...prev }
+      if (!capability.resolutions.includes(next.resolution)) {
+        next.resolution = capability.resolutions[0]
+      }
+      const allowed =
+        next.resolution === '4k'
+          ? capability.ratios.filter((ratio) => FOUR_K_RATIOS.includes(ratio))
+          : capability.ratios
+      if (allowed.length && !allowed.includes(next.size)) {
+        next.size = allowed[0]
+      }
+      if (next.count > capability.maxCount) {
+        next.count = capability.maxCount
+      }
+      if (!capability.supportsQuality) {
+        next.quality = 'auto'
+      }
+      return next
+    })
+  }, [capability])
+
+  const handleChange = (patch: Partial<GenerationParams>) =>
+    setParams((prev) => ({ ...prev, ...patch }))
 
   return (
     <div className='flex size-full min-h-0 flex-col lg:flex-row'>
-      <aside className='bg-card w-full shrink-0 border-b p-4 lg:w-80 lg:border-e lg:border-b-0'>
+      <aside className='bg-card w-full shrink-0 overflow-y-auto border-b p-4 lg:w-80 lg:border-e lg:border-b-0'>
         <h1 className='mb-4 text-lg font-medium'>{t('Image Generation')}</h1>
         <GenerationForm
-          prompt={prompt}
-          model={model}
-          size={size}
-          quality={quality}
-          count={count}
+          params={params}
+          capability={capability}
           models={models}
           isLoadingModels={isLoadingModels}
           isGenerating={isGenerating}
-          onPromptChange={setPrompt}
-          onModelChange={setModel}
-          onSizeChange={setSize}
-          onQualityChange={setQuality}
-          onCountChange={setCount}
-          onSubmit={handleSubmit}
+          statusText={statusText}
+          onChange={handleChange}
+          onSubmit={() => generate(params)}
           onStop={stop}
         />
       </aside>

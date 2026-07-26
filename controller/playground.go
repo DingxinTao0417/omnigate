@@ -20,27 +20,36 @@ func PlaygroundImage(c *gin.Context) {
 	playgroundRelay(c, types.RelayFormatOpenAIImage)
 }
 
-func playgroundRelay(c *gin.Context, relayFormat types.RelayFormat) {
-	var newAPIError *types.NewAPIError
-
-	defer func() {
-		if newAPIError != nil {
-			c.JSON(newAPIError.StatusCode, gin.H{
-				"error": newAPIError.ToOpenAIError(),
-			})
-		}
-	}()
-
-	useAccessToken := c.GetBool("use_access_token")
-	if useAccessToken {
-		newAPIError = types.NewError(errors.New("暂不支持使用 access token"), types.ErrorCodeAccessDenied, types.ErrOptionWithSkipRetry())
+// PlaygroundImageTask submits an asynchronous image generation task on behalf
+// of the logged-in user, so the console can generate without an API key the way
+// the chat playground does.
+func PlaygroundImageTask(c *gin.Context) {
+	if newAPIError := setupPlaygroundContext(c, types.RelayFormatOpenAIImage); newAPIError != nil {
+		c.JSON(newAPIError.StatusCode, gin.H{"error": newAPIError.ToOpenAIError()})
 		return
+	}
+	RelayTask(c)
+}
+
+func playgroundRelay(c *gin.Context, relayFormat types.RelayFormat) {
+	if newAPIError := setupPlaygroundContext(c, relayFormat); newAPIError != nil {
+		c.JSON(newAPIError.StatusCode, gin.H{"error": newAPIError.ToOpenAIError()})
+		return
+	}
+	Relay(c, relayFormat)
+}
+
+// setupPlaygroundContext grants the request a synthetic token bound to the
+// logged-in user so downstream billing and channel selection behave as they do
+// for a real API call.
+func setupPlaygroundContext(c *gin.Context, relayFormat types.RelayFormat) *types.NewAPIError {
+	if c.GetBool("use_access_token") {
+		return types.NewError(errors.New("暂不支持使用 access token"), types.ErrorCodeAccessDenied, types.ErrOptionWithSkipRetry())
 	}
 
 	relayInfo, err := relaycommon.GenRelayInfo(c, relayFormat, nil, nil)
 	if err != nil {
-		newAPIError = types.NewError(err, types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
-		return
+		return types.NewError(err, types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 	}
 
 	userId := c.GetInt("id")
@@ -48,8 +57,7 @@ func playgroundRelay(c *gin.Context, relayFormat types.RelayFormat) {
 	// Write user context to ensure acceptUnsetRatio is available
 	userCache, err := model.GetUserCache(userId)
 	if err != nil {
-		newAPIError = types.NewError(err, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
-		return
+		return types.NewError(err, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
 	}
 	userCache.WriteContext(c)
 
@@ -59,6 +67,5 @@ func playgroundRelay(c *gin.Context, relayFormat types.RelayFormat) {
 		Group:  relayInfo.UsingGroup,
 	}
 	_ = middleware.SetupContextForToken(c, tempToken)
-
-	Relay(c, relayFormat)
+	return nil
 }

@@ -16,32 +16,76 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { ImageModelCapability } from './types'
 
-export const IMAGE_API_ENDPOINT = '/pg/images/generations'
+export const SUBMIT_ENDPOINT = '/pg/images/tasks'
+export const FETCH_ENDPOINT = '/pg/images/tasks'
 
-// Models whose names suggest image output; used to pre-filter the user's
-// model list. Falls back to the full list when nothing matches.
+export const POLL_INTERVAL_MS = 3000
+// Upstream generation can legitimately take minutes; give up rather than poll
+// forever if a task never reaches a terminal state.
+export const POLL_TIMEOUT_MS = 5 * 60 * 1000
+
 export const IMAGE_MODEL_PATTERN =
-  /image|dall-e|flux|imagen|seedream|cogview|janus|photon|recraft/i
-
-// Size values follow the OpenAI images API. Ratios are shown verbatim since
-// they read the same in every language; only "auto" needs translating.
-export const SIZE_OPTIONS = [
-  { value: 'auto', ratio: null },
-  { value: '1024x1024', ratio: '1:1' },
-  { value: '1536x1024', ratio: '3:2' },
-  { value: '1024x1536', ratio: '2:3' },
-  { value: '1792x1024', ratio: '16:9' },
-  { value: '1024x1792', ratio: '9:16' },
-] as const
-
-export const QUALITY_OPTIONS = [
-  { value: 'auto', labelKey: 'Auto' },
-  { value: 'low', labelKey: 'Low' },
-  { value: 'medium', labelKey: 'Medium' },
-  { value: 'high', labelKey: 'High' },
-] as const
-
-export const COUNT_OPTIONS = [1, 2, 3, 4] as const
+  /image|dall-e|flux|imagen|seedream|seedance|banana|gemini-.*-image|cogview|grok-imagine|recraft/i
 
 export const DEFAULT_IMAGE_MODEL = 'gpt-image-2'
+
+/**
+ * Per-model limits. Values mirror the upstream documentation; a model that is
+ * absent falls back to DEFAULT_CAPABILITY so an unlisted model stays usable.
+ */
+export const MODEL_CAPABILITIES: Record<string, ImageModelCapability> = {
+  'gpt-image-2': {
+    maxCount: 1,
+    supportsQuality: false,
+    resolutions: ['1k', '2k', '4k'],
+    ratios: [
+      '1:1',
+      '16:9',
+      '9:16',
+      '2:1',
+      '1:2',
+      '4:3',
+      '3:4',
+      '3:2',
+      '2:3',
+      '21:9',
+      '9:21',
+      '5:4',
+      '4:5',
+    ],
+  },
+  'gpt-image-2-official': {
+    maxCount: 4,
+    supportsQuality: true,
+    resolutions: ['1k', '2k', '4k'],
+    ratios: [
+      '1:1',
+      '16:9',
+      '9:16',
+      '2:1',
+      '1:2',
+      '4:3',
+      '3:4',
+      '3:2',
+      '2:3',
+      '21:9',
+      '9:21',
+      '5:4',
+      '4:5',
+    ],
+  },
+}
+
+export const DEFAULT_CAPABILITY: ImageModelCapability = {
+  maxCount: 1,
+  supportsQuality: false,
+  resolutions: ['1k', '2k'],
+  ratios: ['1:1', '16:9', '9:16', '4:3', '3:4'],
+}
+
+// 4K output is only accepted for these wide/tall ratios.
+export const FOUR_K_RATIOS = ['16:9', '9:16', '2:1', '1:2', '21:9', '9:21']
+
+export const QUALITY_OPTIONS = ['auto', 'low', 'medium', 'high'] as const

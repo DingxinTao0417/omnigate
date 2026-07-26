@@ -5231,6 +5231,10 @@
     "Image generation failed": "La génération d'image a échoué",
     "The response contained no images": "La réponse ne contenait aucune image",
     "Generate images from text prompts.": "Générer des images à partir d'invites textuelles.",
-    "Text-to-image workspace": "Espace de travail texte-vers-image"
+    "Text-to-image workspace": "Espace de travail texte-vers-image",
+    "Resolution": "Résolution",
+    "Submitting task": "Envoi de la tâche",
+    "Waiting for the image": "En attente de l'image",
+    "Timed out waiting for the image": "Délai d'attente de l'image dépassé"
   }
 }

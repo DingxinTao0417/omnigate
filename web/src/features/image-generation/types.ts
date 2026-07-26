@@ -17,26 +17,50 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-export interface ImageGenerationRequest {
+export interface ImageModelCapability {
+  maxCount: number
+  supportsQuality: boolean
+  resolutions: string[]
+  ratios: string[]
+}
+
+export interface GenerationParams {
   model: string
   prompt: string
-  n: number
+  size: string
+  resolution: string
+  quality: string
+  count: number
+}
+
+/** Submit payload; extras travel in metadata like other task platforms. */
+export interface TaskSubmitPayload {
+  model: string
+  prompt: string
   size?: string
-  quality?: string
+  metadata: {
+    resolution?: string
+    quality?: string
+    n?: number
+  }
 }
 
-export interface GeneratedImageData {
-  url?: string
-  b64_json?: string
-  revised_prompt?: string
+export interface TaskSubmitResponse {
+  task_id?: string
+  id?: string
 }
 
-export interface ImageGenerationResponse {
-  created?: number
-  data?: GeneratedImageData[]
+export interface TaskFetchResponse {
+  code?: string
+  data?: {
+    task_id?: string
+    status?: string
+    progress?: string
+    fail_reason?: string
+    result_url?: string
+  } | null
 }
 
-/** A rendered result item; src is always a displayable URL or data URI. */
 export interface GalleryImage {
   id: string
   src: string

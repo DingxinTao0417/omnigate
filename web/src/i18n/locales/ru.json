@@ -5231,6 +5231,10 @@
     "Image generation failed": "Не удалось создать изображение",
     "The response contained no images": "В ответе нет изображений",
     "Generate images from text prompts.": "Создание изображений по текстовым запросам.",
-    "Text-to-image workspace": "Рабочая область генерации изображений"
+    "Text-to-image workspace": "Рабочая область генерации изображений",
+    "Resolution": "Разрешение",
+    "Submitting task": "Отправка задачи",
+    "Waiting for the image": "Ожидание изображения",
+    "Timed out waiting for the image": "Истекло время ожидания изображения"
   }
 }

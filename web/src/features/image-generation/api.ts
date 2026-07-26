@@ -18,27 +18,47 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
 
-import { IMAGE_API_ENDPOINT } from './constants'
-import type { ImageGenerationRequest, ImageGenerationResponse } from './types'
+import { FETCH_ENDPOINT, SUBMIT_ENDPOINT } from './constants'
+import type {
+  GenerationParams,
+  TaskFetchResponse,
+  TaskSubmitResponse,
+} from './types'
 
-export async function generateImages(
-  payload: ImageGenerationRequest,
+/** Submits a generation task and returns its id for polling. */
+export async function submitImageTask(
+  params: GenerationParams,
   signal?: AbortSignal
-): Promise<ImageGenerationResponse> {
-  const body: Record<string, unknown> = {
-    model: payload.model,
-    prompt: payload.prompt,
-    n: payload.n,
-  }
-  // "auto" is the UI default; the upstream default applies when omitted.
-  if (payload.size && payload.size !== 'auto') {
-    body.size = payload.size
-  }
-  if (payload.quality && payload.quality !== 'auto') {
-    body.quality = payload.quality
+): Promise<string> {
+  const payload = {
+    model: params.model,
+    prompt: params.prompt,
+    ...(params.size !== 'auto' && { size: params.size }),
+    metadata: {
+      ...(params.resolution !== 'auto' && { resolution: params.resolution }),
+      ...(params.quality !== 'auto' && { quality: params.quality }),
+      ...(params.count > 1 && { n: params.count }),
+    },
   }
 
-  const res = await api.post(IMAGE_API_ENDPOINT, body, {
+  const res = await api.post(SUBMIT_ENDPOINT, payload, {
+    signal,
+    skipErrorHandler: true,
+  } as Record<string, unknown>)
+
+  const data = res.data as TaskSubmitResponse
+  const taskId = data.task_id || data.id
+  if (!taskId) {
+    throw new Error('The response did not include a task id')
+  }
+  return taskId
+}
+
+export async function fetchImageTask(
+  taskId: string,
+  signal?: AbortSignal
+): Promise<TaskFetchResponse> {
+  const res = await api.get(`${FETCH_ENDPOINT}/${taskId}`, {
     signal,
     skipErrorHandler: true,
   } as Record<string, unknown>)

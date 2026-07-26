@@ -5231,6 +5231,10 @@
     "Image generation failed": "画像の生成に失敗しました",
     "The response contained no images": "レスポンスに画像が含まれていません",
     "Generate images from text prompts.": "テキストプロンプトから画像を生成します。",
-    "Text-to-image workspace": "テキストから画像を生成する作業台"
+    "Text-to-image workspace": "テキストから画像を生成する作業台",
+    "Resolution": "解像度",
+    "Submitting task": "タスクを送信中",
+    "Waiting for the image": "画像を待機中",
+    "Timed out waiting for the image": "画像の待機がタイムアウトしました"
   }
 }

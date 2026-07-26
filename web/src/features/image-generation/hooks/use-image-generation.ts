@@ -20,35 +20,54 @@ import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { generateImages } from '../api'
-import type { GalleryImage, ImageGenerationRequest } from '../types'
+import { fetchImageTask, submitImageTask } from '../api'
+import { POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from '../constants'
+import type { GalleryImage, GenerationParams } from '../types'
 
-/** Pulls a human-readable message out of an axios/relay error shape. */
+const TERMINAL_SUCCESS = new Set(['SUCCESS', 'SUCCEED', 'SUCCEEDED'])
+const TERMINAL_FAILURE = new Set(['FAILURE', 'FAILED', 'ERROR', 'UNKNOWN'])
+
 function extractErrorMessage(error: unknown, fallback: string): string {
   const res = (error as { response?: { data?: unknown } })?.response?.data
   const err = (res as { error?: unknown })?.error
   const message =
     (err as { message?: string })?.message ??
+    (typeof err === 'string' ? err : undefined) ??
     (res as { message?: string })?.message ??
     (error as { message?: string })?.message
   return typeof message === 'string' && message.trim() ? message : fallback
 }
 
+const wait = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, ms)
+    signal.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer)
+        reject(new DOMException('Aborted', 'AbortError'))
+      },
+      { once: true }
+    )
+  })
+
 export function useImageGeneration() {
   const { t } = useTranslation()
   const [images, setImages] = useState<GalleryImage[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
+  const [statusText, setStatusText] = useState('')
   const abortRef = useRef<AbortController | null>(null)
 
   const stop = useCallback(() => {
     abortRef.current?.abort()
     abortRef.current = null
     setIsGenerating(false)
+    setStatusText('')
   }, [])
 
   const generate = useCallback(
-    async (request: ImageGenerationRequest) => {
-      if (!request.prompt.trim()) {
+    async (params: GenerationParams) => {
+      if (!params.prompt.trim()) {
         toast.error(t('Please enter a prompt'))
         return
       }
@@ -56,37 +75,59 @@ export function useImageGeneration() {
       const controller = new AbortController()
       abortRef.current = controller
       setIsGenerating(true)
+      setStatusText(t('Submitting task'))
 
       try {
-        const data = await generateImages(request, controller.signal)
-        const results = (data.data ?? [])
-          .map((item, index) => {
-            const src = item.b64_json
-              ? `data:image/png;base64,${item.b64_json}`
-              : item.url
-            if (!src) return null
-            return {
-              // Index keeps ids unique when several images share a timestamp.
-              id: `${data.created ?? ''}-${index}-${src.slice(-16)}`,
-              src,
-              prompt: item.revised_prompt || request.prompt,
-              model: request.model,
-              createdAt: (data.created ?? 0) * 1000 || Date.now(),
-            } satisfies GalleryImage
-          })
-          .filter((item): item is GalleryImage => item !== null)
+        const taskId = await submitImageTask(params, controller.signal)
+        setStatusText(t('Waiting for the image'))
 
-        if (!results.length) {
-          toast.error(t('The response contained no images'))
+        const deadline = Date.now() + POLL_TIMEOUT_MS
+        // Upstream is asynchronous: poll until the task reaches a terminal
+        // state or the deadline passes.
+        for (;;) {
+          if (Date.now() > deadline) {
+            toast.error(t('Timed out waiting for the image'))
+            return
+          }
+          await wait(POLL_INTERVAL_MS, controller.signal)
+
+          const res = await fetchImageTask(taskId, controller.signal)
+          const task = res.data
+          if (!task) continue
+
+          const status = (task.status || '').toUpperCase()
+          if (TERMINAL_FAILURE.has(status)) {
+            toast.error(task.fail_reason || t('Image generation failed'))
+            return
+          }
+          if (!TERMINAL_SUCCESS.has(status)) {
+            if (task.progress) setStatusText(task.progress)
+            continue
+          }
+
+          if (!task.result_url) {
+            toast.error(t('The response contained no images'))
+            return
+          }
+          setImages((prev) => [
+            {
+              id: taskId,
+              src: task.result_url as string,
+              prompt: params.prompt,
+              model: params.model,
+              createdAt: Date.now(),
+            },
+            ...prev,
+          ])
           return
         }
-        setImages((prev) => [...results, ...prev])
       } catch (error) {
         if (controller.signal.aborted) return
         toast.error(extractErrorMessage(error, t('Image generation failed')))
       } finally {
         abortRef.current = null
         setIsGenerating(false)
+        setStatusText('')
       }
     },
     [t]
@@ -94,5 +135,5 @@ export function useImageGeneration() {
 
   const clear = useCallback(() => setImages([]), [])
 
-  return { images, isGenerating, generate, stop, clear }
+  return { images, isGenerating, statusText, generate, stop, clear }
 }

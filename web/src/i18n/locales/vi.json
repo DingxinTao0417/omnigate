@@ -5231,6 +5231,10 @@
     "Image generation failed": "Tạo hình ảnh thất bại",
     "The response contained no images": "Phản hồi không chứa hình ảnh",
     "Generate images from text prompts.": "Tạo hình ảnh từ câu lệnh văn bản.",
-    "Text-to-image workspace": "Không gian tạo ảnh từ văn bản"
+    "Text-to-image workspace": "Không gian tạo ảnh từ văn bản",
+    "Resolution": "Độ phân giải",
+    "Submitting task": "Đang gửi tác vụ",
+    "Waiting for the image": "Đang chờ hình ảnh",
+    "Timed out waiting for the image": "Hết thời gian chờ hình ảnh"
   }
 }

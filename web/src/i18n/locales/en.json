@@ -5231,6 +5231,10 @@
     "Image generation failed": "Image generation failed",
     "The response contained no images": "The response contained no images",
     "Generate images from text prompts.": "Generate images from text prompts.",
-    "Text-to-image workspace": "Text-to-image workspace"
+    "Text-to-image workspace": "Text-to-image workspace",
+    "Resolution": "Resolution",
+    "Submitting task": "Submitting task",
+    "Waiting for the image": "Waiting for the image",
+    "Timed out waiting for the image": "Timed out waiting for the image"
   }
 }
