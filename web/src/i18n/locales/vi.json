@@ -5214,6 +5214,23 @@
     "Zero retention": "Không lưu dữ liệu",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Generate": "Tạo",
+    "Quality": "Chất lượng",
+    "Low": "Thấp",
+    "Medium": "Trung bình",
+    "High": "Cao",
+    "Results": "Kết quả",
+    "Select a model": "Chọn mô hình",
+    "Aspect ratio": "Tỷ lệ khung hình",
+    "Number of images": "Số lượng ảnh",
+    "Describe the image you want to generate": "Mô tả hình ảnh bạn muốn tạo",
+    "Generating, this may take a while": "Đang tạo, quá trình này có thể mất một lúc",
+    "Generated images will appear here": "Hình ảnh đã tạo sẽ xuất hiện ở đây",
+    "Please enter a prompt": "Vui lòng nhập câu lệnh",
+    "Image generation failed": "Tạo hình ảnh thất bại",
+    "The response contained no images": "Phản hồi không chứa hình ảnh",
+    "Generate images from text prompts.": "Tạo hình ảnh từ câu lệnh văn bản.",
+    "Text-to-image workspace": "Không gian tạo ảnh từ văn bản"
   }
 }

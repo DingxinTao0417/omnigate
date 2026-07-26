@@ -5214,6 +5214,23 @@
     "Zero retention": "Без хранения данных",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Generate": "Создать",
+    "Quality": "Качество",
+    "Low": "Низкое",
+    "Medium": "Среднее",
+    "High": "Высокое",
+    "Results": "Результаты",
+    "Select a model": "Выберите модель",
+    "Aspect ratio": "Соотношение сторон",
+    "Number of images": "Количество изображений",
+    "Describe the image you want to generate": "Опишите изображение, которое хотите создать",
+    "Generating, this may take a while": "Создание, это может занять некоторое время",
+    "Generated images will appear here": "Созданные изображения появятся здесь",
+    "Please enter a prompt": "Введите запрос",
+    "Image generation failed": "Не удалось создать изображение",
+    "The response contained no images": "В ответе нет изображений",
+    "Generate images from text prompts.": "Создание изображений по текстовым запросам.",
+    "Text-to-image workspace": "Рабочая область генерации изображений"
   }
 }

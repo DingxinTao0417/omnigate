@@ -5214,6 +5214,23 @@
     "Zero retention": "零数据保留",
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "Generate": "生成",
+    "Quality": "质量",
+    "Low": "低",
+    "Medium": "中",
+    "High": "高",
+    "Results": "结果",
+    "Select a model": "选择模型",
+    "Aspect ratio": "比例",
+    "Number of images": "生成数量",
+    "Describe the image you want to generate": "描述你想生成的图像",
+    "Generating, this may take a while": "正在生成，可能需要一些时间",
+    "Generated images will appear here": "生成的图像将显示在这里",
+    "Please enter a prompt": "请输入提示词",
+    "Image generation failed": "图像生成失败",
+    "The response contained no images": "响应中没有图像",
+    "Generate images from text prompts.": "通过文本提示词生成图像。",
+    "Text-to-image workspace": "文生图工作台"
   }
 }

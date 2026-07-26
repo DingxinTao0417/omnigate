@@ -5214,6 +5214,23 @@
     "Zero retention": "Aucune rétention",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Generate": "Générer",
+    "Quality": "Qualité",
+    "Low": "Faible",
+    "Medium": "Moyenne",
+    "High": "Élevée",
+    "Results": "Résultats",
+    "Select a model": "Sélectionner un modèle",
+    "Aspect ratio": "Format",
+    "Number of images": "Nombre d'images",
+    "Describe the image you want to generate": "Décrivez l'image que vous souhaitez générer",
+    "Generating, this may take a while": "Génération en cours, cela peut prendre un moment",
+    "Generated images will appear here": "Les images générées apparaîtront ici",
+    "Please enter a prompt": "Veuillez saisir une invite",
+    "Image generation failed": "La génération d'image a échoué",
+    "The response contained no images": "La réponse ne contenait aucune image",
+    "Generate images from text prompts.": "Générer des images à partir d'invites textuelles.",
+    "Text-to-image workspace": "Espace de travail texte-vers-image"
   }
 }
