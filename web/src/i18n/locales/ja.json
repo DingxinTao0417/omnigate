@@ -5214,27 +5214,6 @@
     "Zero retention": "データ保持なし",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム",
-    "Generate": "生成",
-    "Quality": "品質",
-    "Low": "低",
-    "Medium": "中",
-    "High": "高",
-    "Results": "結果",
-    "Select a model": "モデルを選択",
-    "Aspect ratio": "アスペクト比",
-    "Number of images": "生成枚数",
-    "Describe the image you want to generate": "生成したい画像を説明してください",
-    "Generating, this may take a while": "生成中です。しばらくお待ちください",
-    "Generated images will appear here": "生成された画像がここに表示されます",
-    "Please enter a prompt": "プロンプトを入力してください",
-    "Image generation failed": "画像の生成に失敗しました",
-    "The response contained no images": "レスポンスに画像が含まれていません",
-    "Generate images from text prompts.": "テキストプロンプトから画像を生成します。",
-    "Text-to-image workspace": "テキストから画像を生成する作業台",
-    "Resolution": "解像度",
-    "Submitting task": "タスクを送信中",
-    "Waiting for the image": "画像を待機中",
-    "Timed out waiting for the image": "画像の待機がタイムアウトしました"
+    "Zoom": "ズーム"
   }
 }
