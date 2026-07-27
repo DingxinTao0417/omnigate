@@ -30,6 +30,12 @@ const DASHBOARD_SECTIONS = [
     build: () => null,
   },
   {
+    // Realtime health, open to every signed-in user.
+    id: 'status',
+    titleKey: 'Service Status',
+    build: () => null,
+  },
+  {
     id: 'models',
     titleKey: 'Model Call Analytics',
     build: () => null,

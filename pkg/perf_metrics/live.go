@@ -1,6 +1,7 @@
 package perfmetrics
 
 import (
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -34,6 +35,19 @@ type LiveSample struct {
 	Success   bool  `json:"success"`
 	LatencyMs int64 `json:"latency_ms"`
 	At        int64 `json:"at"`
+	// Group is the group that actually served the request. Empty when the
+	// request failed before group resolution (e.g. bad token).
+	Group string `json:"group,omitempty"`
+}
+
+// LiveGroupSnapshot is the per-group breakdown of the retained samples.
+type LiveGroupSnapshot struct {
+	Group        string       `json:"group"`
+	Samples      []LiveSample `json:"samples"`
+	SuccessCount int          `json:"success_count"`
+	FailureCount int          `json:"failure_count"`
+	SuccessRate  float64      `json:"success_rate"`
+	AvgLatencyMs int64        `json:"avg_latency_ms"`
 }
 
 // LiveSnapshot is the payload behind the realtime panel.
@@ -48,6 +62,9 @@ type LiveSnapshot struct {
 	SuccessRate   float64 `json:"success_rate"`
 	LastRequestAt int64   `json:"last_request_at"`
 	ServerTime    int64   `json:"server_time"`
+	// Groups is the same retained samples split per serving group, busiest
+	// first. Requests that never resolved a group are omitted.
+	Groups []LiveGroupSnapshot `json:"groups"`
 }
 
 // RequestStarted increments the in-flight gauge. Always pair with
@@ -57,7 +74,8 @@ func RequestStarted() {
 }
 
 // RequestFinished decrements the in-flight gauge and records the outcome.
-func RequestFinished(success bool, latencyMs int64) {
+// group may be empty when the request failed before a group was resolved.
+func RequestFinished(success bool, latencyMs int64, group string) {
 	// Clamp at zero: a stray Finished without a matching Started would otherwise
 	// make the gauge negative and stay wrong for the process lifetime.
 	if live.inFlight.Add(-1) < 0 {
@@ -74,6 +92,7 @@ func RequestFinished(success bool, latencyMs int64) {
 		Success:   success,
 		LatencyMs: latencyMs,
 		At:        time.Now().UnixMilli(),
+		Group:     group,
 	}
 	live.next = (live.next + 1) % liveSampleCapacity
 	live.total++
@@ -128,5 +147,52 @@ func Live() LiveSnapshot {
 		snapshot.SuccessRate = float64(succeeded) / float64(len(ordered)) * 100
 	}
 
+	snapshot.Groups = groupSnapshots(ordered)
+
 	return snapshot
+}
+
+// groupSnapshots splits retained samples per serving group, busiest first.
+// Samples without a group are skipped: those failed before group resolution, so
+// attributing them to any group would be misleading.
+func groupSnapshots(ordered []LiveSample) []LiveGroupSnapshot {
+	if len(ordered) == 0 {
+		return nil
+	}
+
+	byGroup := make(map[string][]LiveSample)
+	for _, sample := range ordered {
+		if sample.Group == "" {
+			continue
+		}
+		byGroup[sample.Group] = append(byGroup[sample.Group], sample)
+	}
+	if len(byGroup) == 0 {
+		return nil
+	}
+
+	groups := make([]LiveGroupSnapshot, 0, len(byGroup))
+	for name, samples := range byGroup {
+		entry := LiveGroupSnapshot{Group: name, Samples: samples}
+		var latencyTotal int64
+		for _, sample := range samples {
+			if sample.Success {
+				entry.SuccessCount++
+			} else {
+				entry.FailureCount++
+			}
+			latencyTotal += sample.LatencyMs
+		}
+		entry.SuccessRate = float64(entry.SuccessCount) / float64(len(samples)) * 100
+		entry.AvgLatencyMs = latencyTotal / int64(len(samples))
+		groups = append(groups, entry)
+	}
+
+	sort.Slice(groups, func(i, j int) bool {
+		if len(groups[i].Samples) != len(groups[j].Samples) {
+			return len(groups[i].Samples) > len(groups[j].Samples)
+		}
+		return groups[i].Group < groups[j].Group
+	})
+	return groups
 }

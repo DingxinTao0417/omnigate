@@ -36,6 +36,7 @@ import {
   getSuccessRateLevel,
   getSuccessRateTextClass,
 } from '@/features/performance-metrics/lib/format'
+import type { PerfLiveSample } from '@/features/performance-metrics/types'
 import { cn } from '@/lib/utils'
 
 /** Poll cadence; the progress ring completes exactly one turn per cycle. */
@@ -70,6 +71,41 @@ function LiveStatusLegend() {
           'Bars are the most recent requests (green = success, red = failed). The ring tracks the 3s poll cycle, and the pulsing number is how many requests are in flight right now.'
         )}
       </p>
+    </div>
+  )
+}
+
+/** Oldest-left strip of request outcomes; shared by the overall and per-group views. */
+export function SampleStrip(props: {
+  samples: PerfLiveSample[]
+  className?: string
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div className={cn('flex h-8 items-end gap-[3px]', props.className)}>
+      {props.samples.map((sample) => (
+        // Timestamp + latency + outcome is unique enough in practice; two
+        // requests finishing in the same millisecond with identical latency and
+        // result are interchangeable for rendering purposes anyway.
+        <Tooltip key={`${sample.at}-${sample.latency_ms}-${sample.success}`}>
+          <TooltipTrigger
+            className={cn(
+              'min-w-[3px] flex-1 rounded-sm transition-opacity hover:opacity-70',
+              sample.success ? 'bg-emerald-500' : 'bg-red-500'
+            )}
+            // Failures are drawn shorter so the strip stays readable in
+            // grayscale and for red/green colour blindness.
+            style={{ height: sample.success ? '100%' : '55%' }}
+          />
+          <TooltipContent>
+            <p className='text-xs'>
+              {sample.success ? t('Success') : t('Failed')} ·{' '}
+              {formatLatency(sample.latency_ms)}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      ))}
     </div>
   )
 }
@@ -256,25 +292,7 @@ export function LiveStatusPanel() {
             {t('No requests recorded since the last restart.')}
           </p>
         ) : (
-          <div className='flex h-8 items-end gap-[3px]'>
-            {samples.map((sample) => (
-              <Tooltip key={`${sample.at}-${sample.latency_ms}`}>
-                <TooltipTrigger
-                  className={cn(
-                    'min-w-[3px] flex-1 rounded-sm transition-opacity hover:opacity-70',
-                    sample.success ? 'bg-emerald-500' : 'bg-red-500'
-                  )}
-                  style={{ height: sample.success ? '100%' : '55%' }}
-                />
-                <TooltipContent>
-                  <p className='text-xs'>
-                    {sample.success ? t('Success') : t('Failed')} ·{' '}
-                    {formatLatency(sample.latency_ms)}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
+          <SampleStrip samples={samples} />
         )}
         <div className='text-muted-foreground mt-2 flex justify-between text-[11px]'>
           <span>{t('Oldest')}</span>

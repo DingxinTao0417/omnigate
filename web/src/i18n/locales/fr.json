@@ -5325,6 +5325,10 @@
     "Health checks are unavailable right now.": "健康检查暂时不可用。",
     "No channels configured yet, so relay requests cannot succeed.": "还没有配置任何渠道，转发请求无法成功。",
     "{{count}} channel(s) were disabled automatically after repeated upstream errors.": "有 {{count}} 个渠道因上游连续报错被自动禁用。",
-    "<1ms": "<1ms"
+    "<1ms": "<1ms",
+    "Service Status": "服务状态",
+    "Recent requests per group": "各分组的最近请求",
+    "No group traffic recorded since the last restart.": "自上次重启后还没有分组流量记录。",
+    "{{count}} req": "{{count}} 次"
   }
 }

@@ -23,6 +23,7 @@ import {
   FileText,
   FlaskConical,
   Key,
+  HeartPulse,
   LayoutDashboard,
   ListTodo,
   MessageSquare,
@@ -74,6 +75,11 @@ export function useSidebarData(): SidebarData {
             title: t('Overview'),
             url: '/dashboard/overview',
             icon: Activity,
+          },
+          {
+            title: t('Service Status'),
+            url: '/dashboard/status',
+            icon: HeartPulse,
           },
           {
             title: t('Dashboard'),

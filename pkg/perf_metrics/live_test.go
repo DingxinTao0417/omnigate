@@ -41,10 +41,10 @@ func TestInFlightTracksStartedMinusFinished(t *testing.T) {
 	RequestStarted()
 	require.EqualValues(t, 2, Live().InFlight)
 
-	RequestFinished(true, 10)
+	RequestFinished(true, 10, "default")
 	assert.EqualValues(t, 1, Live().InFlight)
 
-	RequestFinished(true, 10)
+	RequestFinished(true, 10, "default")
 	assert.EqualValues(t, 0, Live().InFlight)
 }
 
@@ -53,7 +53,7 @@ func TestInFlightNeverGoesNegative(t *testing.T) {
 
 	// An unmatched Finished (e.g. a handler that reported twice) must not leave
 	// the gauge negative for the rest of the process lifetime.
-	RequestFinished(false, 5)
+	RequestFinished(false, 5, "")
 
 	assert.EqualValues(t, 0, Live().InFlight)
 }
@@ -62,11 +62,11 @@ func TestLiveSuccessRateReflectsRetainedSamples(t *testing.T) {
 	resetLiveState()
 
 	RequestStarted()
-	RequestFinished(true, 10)
+	RequestFinished(true, 10, "default")
 	RequestStarted()
-	RequestFinished(true, 10)
+	RequestFinished(true, 10, "default")
 	RequestStarted()
-	RequestFinished(false, 10)
+	RequestFinished(false, 10, "default")
 
 	snapshot := Live()
 
@@ -84,7 +84,7 @@ func TestLiveSamplesAreOldestFirstAndBounded(t *testing.T) {
 	total := liveSampleCapacity + 5
 	for i := 0; i < total; i++ {
 		RequestStarted()
-		RequestFinished(true, int64(i))
+		RequestFinished(true, int64(i), "default")
 	}
 
 	snapshot := Live()
@@ -106,7 +106,7 @@ func TestConcurrentRequestsKeepGaugeConsistent(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			RequestStarted()
-			RequestFinished(true, 1)
+			RequestFinished(true, 1, "default")
 		}()
 	}
 	wg.Wait()
@@ -114,4 +114,50 @@ func TestConcurrentRequestsKeepGaugeConsistent(t *testing.T) {
 	snapshot := Live()
 	assert.EqualValues(t, 0, snapshot.InFlight, "every start must be balanced by a finish")
 	assert.EqualValues(t, workers, snapshot.TotalRequests)
+}
+
+func TestLiveGroupsSplitSamplesByServingGroup(t *testing.T) {
+	resetLiveState()
+
+	// vip: 2 ok, 1 failed. default: 1 ok.
+	for _, sample := range []struct {
+		ok    bool
+		group string
+	}{
+		{true, "vip"},
+		{true, "vip"},
+		{false, "vip"},
+		{true, "default"},
+	} {
+		RequestStarted()
+		RequestFinished(sample.ok, 20, sample.group)
+	}
+
+	groups := Live().Groups
+	require.Len(t, groups, 2)
+
+	// Busiest group first.
+	assert.Equal(t, "vip", groups[0].Group)
+	assert.Equal(t, 2, groups[0].SuccessCount)
+	assert.Equal(t, 1, groups[0].FailureCount)
+	assert.InDelta(t, 66.67, groups[0].SuccessRate, 0.01)
+	assert.EqualValues(t, 20, groups[0].AvgLatencyMs)
+
+	assert.Equal(t, "default", groups[1].Group)
+	assert.Equal(t, 1, groups[1].SuccessCount)
+}
+
+func TestLiveGroupsOmitSamplesWithoutAGroup(t *testing.T) {
+	resetLiveState()
+
+	// A request rejected before group resolution (e.g. invalid token) must not
+	// be attributed to any group, but still counts in the overall totals.
+	RequestStarted()
+	RequestFinished(false, 3, "")
+
+	snapshot := Live()
+
+	require.Len(t, snapshot.Samples, 1, "still counted overall")
+	assert.EqualValues(t, 0, snapshot.SuccessRate)
+	assert.Empty(t, snapshot.Groups, "no group can be blamed for it")
 }

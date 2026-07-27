@@ -3,6 +3,8 @@ package middleware
 import (
 	"time"
 
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
 	"github.com/QuantumNous/new-api/setting/perf_metrics_setting"
 
@@ -32,6 +34,9 @@ func LiveMetrics() func(c *gin.Context) {
 			perfmetrics.RequestFinished(
 				c.Writer.Status() < 400,
 				time.Since(start).Milliseconds(),
+				// Read after c.Next(): the distributor resolves the group
+				// downstream, so this is empty for requests rejected earlier.
+				common.GetContextKeyString(c, constant.ContextKeyUsingGroup),
 			)
 		}()
 

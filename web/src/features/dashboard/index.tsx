@@ -38,6 +38,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { ModelsChartPreferences } from './components/models/models-chart-preferences'
 import { ModelsFilter } from './components/models/models-filter-dialog'
 import { OverviewDashboard } from './components/overview/overview-dashboard'
+import { ServiceStatusDashboard } from './components/service-status-dashboard'
 import { DEFAULT_TIME_GRANULARITY } from './constants'
 import {
   buildDefaultDashboardFilters,
@@ -182,6 +183,9 @@ const SECTION_META: Record<DashboardSectionId, { titleKey: string }> = {
   },
   models: {
     titleKey: 'Model Call Analytics',
+  },
+  status: {
+    titleKey: 'Service Status',
   },
   flow: {
     titleKey: 'Flow',
@@ -345,6 +349,11 @@ export function Dashboard() {
             </div>
           )}
           {activeSection === 'overview' && <OverviewDashboard />}
+          {activeSection === 'status' && (
+            <FadeIn>
+              <ServiceStatusDashboard />
+            </FadeIn>
+          )}
           {activeSection === 'models' && (
             <>
               <FadeIn>

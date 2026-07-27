@@ -65,6 +65,8 @@ export type PerfLiveSample = {
   latency_ms: number
   /** Unix milliseconds. */
   at: number
+  /** Serving group; absent when the request failed before group resolution. */
+  group?: string
 }
 
 export type HealthComponentStatus = 'ok' | 'degraded' | 'down' | 'disabled'
@@ -91,6 +93,15 @@ export type SystemHealthData = {
   }
 }
 
+export type PerfLiveGroup = {
+  group: string
+  samples: PerfLiveSample[]
+  success_count: number
+  failure_count: number
+  success_rate: number
+  avg_latency_ms: number
+}
+
 export type PerfLiveData = {
   success: boolean
   message?: string
@@ -104,5 +115,7 @@ export type PerfLiveData = {
     success_rate: number
     last_request_at: number
     server_time: number
+    /** Per-group breakdown, busiest first. Empty when no group resolved. */
+    groups?: PerfLiveGroup[]
   }
 }

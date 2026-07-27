@@ -63,10 +63,7 @@ import {
 import { AnnouncementsPanel } from './announcements-panel'
 import { ApiInfoPanel } from './api-info-panel'
 import { FAQPanel } from './faq-panel'
-import { LiveStatusPanel } from './live-status-panel'
-import { PerformanceHealthPanel } from './performance-health-panel'
 import { SummaryCards } from './summary-cards'
-import { SystemHealthPanel } from './system-health-panel'
 import { UptimePanel } from './uptime-panel'
 
 const SETUP_GUIDE_VISIBILITY_STORAGE_KEY =
@@ -770,19 +767,7 @@ export function OverviewDashboard() {
                   'lg:grid-cols-2'
               )}
             >
-              {isAdmin && (
-                <>
-                  <CardStaggerItem>
-                    <LiveStatusPanel />
-                  </CardStaggerItem>
-                  <CardStaggerItem>
-                    <SystemHealthPanel />
-                  </CardStaggerItem>
-                  <CardStaggerItem className='lg:col-span-2'>
-                    <PerformanceHealthPanel />
-                  </CardStaggerItem>
-                </>
-              )}
+              {/* Live/health/performance panels live on the Service Status tab. */}
               {showApiInfoPanel && (
                 <CardStaggerItem>
                   <ApiInfoPanel />
