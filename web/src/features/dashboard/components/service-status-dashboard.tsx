@@ -21,12 +21,13 @@ import { useAuthStore } from '@/stores/auth-store'
 
 import { GroupStatusPanel } from './overview/group-status-panel'
 import { LiveStatusPanel } from './overview/live-status-panel'
+import { PerformanceHealthPanel } from './overview/performance-health-panel'
 import { SystemHealthPanel } from './overview/system-health-panel'
 
 /**
  * Realtime service status. The live and group panels are open to every
- * signed-in user; the dependency panel stays admin-only because it exposes
- * infrastructure reachability and channel inventory.
+ * signed-in user; the dependency and per-model panels stay admin-only because
+ * they expose infrastructure reachability and cross-tenant model performance.
  */
 export function ServiceStatusDashboard() {
   const userRole = useAuthStore((state) => state.auth.user?.role)
@@ -39,6 +40,7 @@ export function ServiceStatusDashboard() {
         {isAdmin && <SystemHealthPanel />}
       </div>
       <GroupStatusPanel />
+      {isAdmin && <PerformanceHealthPanel />}
     </div>
   )
 }

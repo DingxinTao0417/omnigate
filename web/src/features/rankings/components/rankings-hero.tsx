@@ -32,6 +32,8 @@ const PERIODS: { id: RankingPeriod; labelKey: string }[] = [
 type RankingsHeroProps = {
   period: RankingPeriod
   onPeriodChange: (period: RankingPeriod) => void
+  /** Hidden on views that do not use the period window (e.g. user rankings). */
+  showPeriodTabs?: boolean
 }
 
 /**
@@ -56,6 +58,7 @@ export function RankingsHero(props: RankingsHeroProps) {
 
       {/* Underline tabs for period — clean and unobtrusive. */}
       <div
+        hidden={props.showPeriodTabs === false}
         role='tablist'
         aria-label={t('Period')}
         className='border-border/60 flex items-center border-b'

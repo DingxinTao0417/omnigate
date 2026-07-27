@@ -28,6 +28,10 @@ const rankingsSearchSchema = z.object({
     .enum(['today', 'week', 'month', 'year'])
     .optional()
     .catch(undefined),
+  // Named `board` rather than `view`: search param types are shared across
+  // routes, and `view` is already a card/table toggle on the pricing pages.
+  // The users board is admin-only; anything else falls back to models.
+  board: z.enum(['models', 'users']).optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/rankings/')({

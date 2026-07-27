@@ -42,9 +42,7 @@ import { ServiceStatusDashboard } from './components/service-status-dashboard'
 import { DEFAULT_TIME_GRANULARITY } from './constants'
 import {
   buildDefaultDashboardFilters,
-  getDefaultDays,
   getSavedChartPreferences,
-  getSavedGranularity,
   saveChartPreferences,
 } from './lib'
 import {
@@ -56,7 +54,6 @@ import type {
   DashboardChartPreferences,
   DashboardFilters,
   QuotaDataItem,
-  UserChartsFilters,
 } from './types'
 
 const route = getRouteApi('/_authenticated/dashboard/$section')
@@ -99,12 +96,6 @@ const LazyConsumptionDistributionChart = lazy(() =>
 const LazyPerformanceOverview = lazy(() =>
   import('./components/models/performance-overview').then((m) => ({
     default: m.PerformanceOverview,
-  }))
-)
-
-const LazyUserCharts = lazy(() =>
-  import('./components/users/user-charts').then((m) => ({
-    default: m.UserCharts,
   }))
 )
 
@@ -177,6 +168,12 @@ function PerformanceOverviewFallback() {
   )
 }
 
+/**
+ * Sections that are their own page, reached from the sidebar rather than the
+ * analytics tab strip. They neither render the strip nor appear inside it.
+ */
+const STANDALONE_SECTIONS = new Set<string>(['overview', 'status'])
+
 const SECTION_META: Record<DashboardSectionId, { titleKey: string }> = {
   overview: {
     titleKey: 'Overview',
@@ -189,9 +186,6 @@ const SECTION_META: Record<DashboardSectionId, { titleKey: string }> = {
   },
   flow: {
     titleKey: 'Flow',
-  },
-  users: {
-    titleKey: 'User Analytics',
   },
 }
 
@@ -209,16 +203,6 @@ export function Dashboard() {
     useState<DashboardChartPreferences>(() => getSavedChartPreferences())
   const [modelFilters, setModelFilters] = useState<DashboardFilters>(() =>
     buildDefaultDashboardFilters(getSavedChartPreferences())
-  )
-  const [userChartsFilters, setUserChartsFilters] = useState<UserChartsFilters>(
-    () => {
-      const granularity = getSavedGranularity()
-      return {
-        timeGranularity: granularity,
-        selectedRange: getDefaultDays(granularity),
-        topUserLimit: 10,
-      }
-    }
   )
   const [flowSensitiveVisible, setFlowSensitiveVisible] = useState(true)
 
@@ -249,12 +233,16 @@ export function Dashboard() {
 
   const meta = SECTION_META[activeSection] ?? SECTION_META.overview
   const isAdmin = Boolean(userRole && userRole >= ROLE.ADMIN)
+  // Sections that share the analytics tab strip. Overview and status are
+  // standalone pages reached from the sidebar, so they must not appear here —
+  // otherwise the strip would let you jump from Service Status straight into
+  // Model Call Analytics, which are unrelated views.
   const visibleSections = useMemo(
     () =>
       DASHBOARD_SECTION_IDS.filter(
-        (section) => section !== 'overview' && (section !== 'users' || isAdmin)
+        (section) => !STANDALONE_SECTIONS.has(section)
       ),
-    [isAdmin]
+    []
   )
   const handleSectionChange = useCallback(
     (section: string) => {
@@ -266,7 +254,7 @@ export function Dashboard() {
     [navigate]
   )
   const showSectionTabs =
-    activeSection !== 'overview' && visibleSections.length > 1
+    !STANDALONE_SECTIONS.has(activeSection) && visibleSections.length > 1
   const modelActions =
     activeSection === 'models' ? (
       <>
@@ -326,7 +314,7 @@ export function Dashboard() {
       <SectionPageLayout.Title>{t(meta.titleKey)}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <div className='space-y-3 sm:space-y-4'>
-          {activeSection !== 'overview' && (
+          {!STANDALONE_SECTIONS.has(activeSection) && (
             <div className='flex flex-wrap items-center justify-between gap-1.5 sm:gap-2'>
               {showSectionTabs ? (
                 <Tabs value={activeSection} onValueChange={handleSectionChange}>
@@ -399,16 +387,7 @@ export function Dashboard() {
               </FadeIn>
             </>
           )}
-          {activeSection === 'users' && (
-            <FadeIn>
-              <Suspense fallback={<ModelChartsFallback />}>
-                <LazyUserCharts
-                  filters={userChartsFilters}
-                  onFiltersChange={setUserChartsFilters}
-                />
-              </Suspense>
-            </FadeIn>
-          )}
+          {/* User analytics now lives on the Rankings page. */}
           {activeSection === 'flow' && (
             <FadeIn>
               <Suspense fallback={<ModelChartsFallback />}>

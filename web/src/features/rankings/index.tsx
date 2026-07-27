@@ -22,6 +22,9 @@ import { useTranslation } from 'react-i18next'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 import {
   MarketShareSection,
@@ -29,10 +32,13 @@ import {
   PulseSection,
   RankingsHero,
 } from './components'
+import { UserRankingsSection } from './components/user-rankings-section'
 import { useRankings } from './hooks/use-rankings'
 import type { RankingPeriod } from './types'
 
 const VALID_PERIODS: RankingPeriod[] = ['today', 'week', 'month', 'year']
+
+type RankingsBoard = 'models' | 'users'
 
 export function Rankings() {
   const { t } = useTranslation()
@@ -45,6 +51,14 @@ export function Rankings() {
     ? (search.period as RankingPeriod)
     : 'week'
 
+  const userRole = useAuthStore((state) => state.auth.user?.role)
+  const isAdmin = Boolean(userRole && userRole >= ROLE.ADMIN)
+
+  // The users view reads per-user spend, which is admin-only data. Non-admins
+  // are pinned to the model leaderboard even if they hand-edit the URL.
+  const board: RankingsBoard =
+    isAdmin && search.board === 'users' ? 'users' : 'models'
+
   const rankingsQuery = useRankings(period)
   const snapshot = rankingsQuery.data?.data
 
@@ -53,6 +67,48 @@ export function Rankings() {
       to: '/rankings',
       search: (prev) => ({ ...prev, period: next }),
     })
+  }
+
+  const handleBoardChange = (next: string) => {
+    navigate({
+      to: '/rankings',
+      search: (prev) => ({ ...prev, board: next as RankingsBoard }),
+    })
+  }
+
+  const renderModelBoard = () => {
+    if (rankingsQuery.isLoading) return <RankingsLoading />
+    if (!snapshot) {
+      return (
+        <RankingsError
+          message={
+            rankingsQuery.error instanceof Error
+              ? rankingsQuery.error.message
+              : t('Unable to load rankings data')
+          }
+        />
+      )
+    }
+    return (
+      <>
+        <ModelsSection
+          history={snapshot.models_history}
+          rows={snapshot.models}
+          period={period}
+        />
+
+        <MarketShareSection
+          history={snapshot.vendor_share_history}
+          rows={snapshot.vendors}
+          period={period}
+        />
+
+        <PulseSection
+          movers={snapshot.top_movers}
+          droppers={snapshot.top_droppers}
+        />
+      </>
+    )
   }
 
   return (
@@ -74,38 +130,23 @@ export function Rankings() {
           }}
         />
         <PageTransition className='relative mx-auto w-full max-w-[1280px] space-y-8 px-3 pt-16 pb-10 sm:px-6 sm:pt-20 sm:pb-12 xl:px-8'>
-          <RankingsHero period={period} onPeriodChange={handlePeriodChange} />
+          <RankingsHero
+            period={period}
+            onPeriodChange={handlePeriodChange}
+            showPeriodTabs={board === 'models'}
+          />
 
-          {rankingsQuery.isLoading ? (
-            <RankingsLoading />
-          ) : !snapshot ? (
-            <RankingsError
-              message={
-                rankingsQuery.error instanceof Error
-                  ? rankingsQuery.error.message
-                  : t('Unable to load rankings data')
-              }
-            />
-          ) : (
-            <>
-              <ModelsSection
-                history={snapshot.models_history}
-                rows={snapshot.models}
-                period={period}
-              />
-
-              <MarketShareSection
-                history={snapshot.vendor_share_history}
-                rows={snapshot.vendors}
-                period={period}
-              />
-
-              <PulseSection
-                movers={snapshot.top_movers}
-                droppers={snapshot.top_droppers}
-              />
-            </>
+          {/* Only admins have a second view to switch to. */}
+          {isAdmin && (
+            <Tabs value={board} onValueChange={handleBoardChange}>
+              <TabsList>
+                <TabsTrigger value='models'>{t('Model Rankings')}</TabsTrigger>
+                <TabsTrigger value='users'>{t('User Rankings')}</TabsTrigger>
+              </TabsList>
+            </Tabs>
           )}
+
+          {board === 'users' ? <UserRankingsSection /> : renderModelBoard()}
         </PageTransition>
       </div>
     </PublicLayout>

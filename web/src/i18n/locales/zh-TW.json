@@ -5329,6 +5329,8 @@
     "Service Status": "服务状态",
     "Recent requests per group": "各分组的最近请求",
     "No group traffic recorded since the last restart.": "自上次重启后还没有分组流量记录。",
-    "{{count}} req": "{{count}} 次"
+    "{{count}} req": "{{count}} 次",
+    "Model Rankings": "模型排行",
+    "User Rankings": "用户排行"
   }
 }
