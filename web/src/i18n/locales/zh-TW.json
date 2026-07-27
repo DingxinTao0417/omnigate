@@ -5313,6 +5313,18 @@
     "No requests recorded since the last restart.": "自上次重启后还没有请求记录。",
     "Live metrics are unavailable right now.": "实时指标暂时不可用。",
     "{{count}} requests since restart": "重启后共 {{count}} 次请求",
-    "Bars are the most recent requests (green = success, red = failed). The ring tracks the 3s poll cycle, and the pulsing number is how many requests are in flight right now.": "竖条是最近的请求采样（绿色为成功，红色为失败）。圆环对应 3 秒轮询周期，闪烁的数字是当前正在处理的请求数。"
+    "Bars are the most recent requests (green = success, red = failed). The ring tracks the 3s poll cycle, and the pulsing number is how many requests are in flight right now.": "竖条是最近的请求采样（绿色为成功，红色为失败）。圆环对应 3 秒轮询周期，闪烁的数字是当前正在处理的请求数。",
+    "System health": "系统健康",
+    "Redis cache": "Redis 缓存",
+    "Reachable": "可连通",
+    "Slow": "响应缓慢",
+    "Unreachable": "无法连通",
+    "Not enabled": "未启用",
+    "{{count}} enabled": "{{count}} 个启用",
+    "{{count}} disabled": "{{count}} 个禁用",
+    "Health checks are unavailable right now.": "健康检查暂时不可用。",
+    "No channels configured yet, so relay requests cannot succeed.": "还没有配置任何渠道，转发请求无法成功。",
+    "{{count}} channel(s) were disabled automatically after repeated upstream errors.": "有 {{count}} 个渠道因上游连续报错被自动禁用。",
+    "<1ms": "<1ms"
   }
 }

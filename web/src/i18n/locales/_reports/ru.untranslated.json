@@ -54,5 +54,9 @@
   "Built on new-api; our deployment config is public under AGPL-3.0": "基于 new-api 构建，部署配置以 AGPL-3.0 公开",
   "Sign up and generate an API key in the console — takes a minute": "注册后在控制台生成一个 API 密钥，一分钟就好",
   "Change the Base URL and key in Claude Code, Codex, Cherry Studio or your own code": "在 Claude Code、Codex、Cherry Studio 或你自己的代码里改掉 Base URL 和密钥",
-  "Every request itemised: model, tokens, cache hits, real cost": "每次请求都能查到：模型、token 数、缓存命中、实际花费"
+  "Every request itemised: model, tokens, cache hits, real cost": "每次请求都能查到：模型、token 数、缓存命中、实际花费",
+  "Refreshed every {{seconds}}s": "每 {{seconds}} 秒刷新",
+  "{{count}} requests since restart": "重启后共 {{count}} 次请求",
+  "Redis cache": "Redis 缓存",
+  "{{count}} channel(s) were disabled automatically after repeated upstream errors.": "有 {{count}} 个渠道因上游连续报错被自动禁用。"
 }

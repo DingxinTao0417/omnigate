@@ -67,6 +67,30 @@ export type PerfLiveSample = {
   at: number
 }
 
+export type HealthComponentStatus = 'ok' | 'degraded' | 'down' | 'disabled'
+
+export type HealthComponent = {
+  status: HealthComponentStatus
+  latency_ms: number
+  detail?: string
+}
+
+export type SystemHealthData = {
+  success: boolean
+  message?: string
+  data: {
+    database: HealthComponent
+    redis: HealthComponent
+    channels: {
+      total: number
+      enabled: number
+      manually_disabled: number
+      auto_disabled: number
+    }
+    server_time: number
+  }
+}
+
 export type PerfLiveData = {
   success: boolean
   message?: string
