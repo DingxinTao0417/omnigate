@@ -16,13 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { CherryStudio } from '@lobehub/icons'
+import { CherryStudio, ClaudeCode, OpenAI } from '@lobehub/icons'
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, BookOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { useStatus } from '@/hooks/use-status'
+import { DEFAULT_DOCS_LINK, LEGACY_UPSTREAM_DOCS_LINK } from '@/lib/constants'
 
 import { HeroTerminalDemo } from '../hero-terminal-demo'
 
@@ -48,8 +49,11 @@ const MoreIcon = () => (
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
   const { status } = useStatus()
+  const configuredDocsLink = (status?.docs_link as string | undefined)?.trim()
   const docsUrl =
-    (status?.docs_link as string | undefined) || 'https://docs.newapi.pro'
+    configuredDocsLink && configuredDocsLink !== LEGACY_UPSTREAM_DOCS_LINK
+      ? configuredDocsLink
+      : DEFAULT_DOCS_LINK
 
   const renderDocsButton = () => {
     const isExternal = docsUrl.startsWith('http')
@@ -111,17 +115,17 @@ export function Hero(props: HeroProps) {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
               <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
             </span>
-            <span>{t('AI Application Infrastructure Foundation')}</span>
+            <span>{t('Claude and GPT, one credential')}</span>
           </div>
 
           <h1
             className='landing-animate-fade-up text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.15] font-bold tracking-tight'
             style={{ animationDelay: '60ms' }}
           >
-            {t('Unified API Gateway for')}
+            {t('One key for')}
             <br />
             <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-              {t('Vast Range of AI Models')}
+              {t('Claude and GPT')}
             </span>
           </h1>
           <p
@@ -129,7 +133,7 @@ export function Hero(props: HeroProps) {
             style={{ animationDelay: '120ms' }}
           >
             {t(
-              'Access a vast selection of models via a standard, unified API protocol. Power AI applications, manage digital assets, and connect the Future.'
+              'A single API key and Base URL for Claude Code, Codex, Cherry Studio and your own code. No separate accounts, no separate top-ups, one usage log for everything.'
             )}
           </p>
 
@@ -180,11 +184,33 @@ export function Hero(props: HeroProps) {
               </span>
               <p className='text-muted-foreground/60 text-xs leading-relaxed'>
                 {t(
-                  'Supports one-click configuration and perfectly adapts to NewAPI multi-protocol configuration.'
+                  'Anything that lets you change the Base URL works. Setup steps for each are in the docs.'
                 )}
               </p>
             </div>
             <div className='flex flex-wrap items-center gap-3'>
+              {/* Claude Code — the primary use case, so it leads. */}
+              <Link
+                to='/docs/$slug'
+                params={{ slug: 'claude-code' }}
+                className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'
+              >
+                {/* Icon is decorative: the adjacent text already names the app,
+                    and the icon's own <title> would double up in screen readers. */}
+                <ClaudeCode.Color size={24} className='shrink-0' aria-hidden />
+                <span>Claude Code</span>
+              </Link>
+
+              {/* Codex CLI */}
+              <Link
+                to='/docs/$slug'
+                params={{ slug: 'codex' }}
+                className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'
+              >
+                <OpenAI size={22} className='shrink-0' aria-hidden />
+                <span>Codex</span>
+              </Link>
+
               {/* Cherry Studio */}
               <a
                 href='https://cherry-ai.com'
@@ -192,7 +218,11 @@ export function Hero(props: HeroProps) {
                 rel='noopener noreferrer'
                 className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'
               >
-                <CherryStudio.Color size={24} className='shrink-0' />
+                <CherryStudio.Color
+                  size={24}
+                  className='shrink-0'
+                  aria-hidden
+                />
                 <span>Cherry Studio</span>
               </a>
 
@@ -223,11 +253,15 @@ export function Hero(props: HeroProps) {
                 <span>CC Switch</span>
               </a>
 
-              {/* "更多" */}
-              <div className='group border-border/40 bg-muted/15 text-foreground/55 hover:border-border hover:bg-muted/30 hover:text-foreground flex cursor-default items-center gap-2.5 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'>
+              {/* Leads to the client setup chapters rather than being a dead chip. */}
+              <Link
+                to='/docs/$slug'
+                params={{ slug: 'gui-clients' }}
+                className='group border-border/40 bg-muted/15 text-foreground/55 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-2.5 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'
+              >
                 <MoreIcon />
                 <span>{t('More Apps')}</span>
-              </div>
+              </Link>
             </div>
           </div>
         </div>

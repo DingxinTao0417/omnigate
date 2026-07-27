@@ -20,6 +20,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useStatus } from '@/hooks/use-status'
+import { LEGACY_UPSTREAM_DOCS_LINK } from '@/lib/constants'
 import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -55,8 +56,13 @@ export function useTopNavLinks(): TopNavLink[] {
     )
   }, [status])
 
-  // Documentation link (may be external)
-  const docsLink: string | undefined = status?.docs_link as string | undefined
+  // Documentation link. Only treat it as external when the admin configured an
+  // off-site URL; the built-in /docs pages are the default.
+  const configuredDocsLink = (status?.docs_link as string | undefined)?.trim()
+  const docsLink =
+    configuredDocsLink && configuredDocsLink !== LEGACY_UPSTREAM_DOCS_LINK
+      ? configuredDocsLink
+      : undefined
 
   const isAuthed = !!auth?.user
 
@@ -86,7 +92,7 @@ export function useTopNavLinks(): TopNavLink[] {
     links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
   }
 
-  // Docs (supports external links)
+  // Docs (built-in pages unless an external URL is configured)
   if (modules?.docs !== false) {
     if (docsLink) {
       links.push({ title: t('Docs'), href: docsLink, external: true })

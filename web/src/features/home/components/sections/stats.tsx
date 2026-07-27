@@ -87,21 +87,24 @@ interface StatsProps {
   className?: string
 }
 
-interface StatItem {
-  end: number
-  suffix: string
+type StatItem = {
+  /** Numeric stats animate; text stats (e.g. a protocol name) render as-is. */
+  end?: number
+  suffix?: string
+  value?: string
   label: string
-  decimals?: number
 }
 
 export function Stats(_props: StatsProps) {
   const { t } = useTranslation()
 
+  // Keep these verifiable. Anything needing a claim we cannot back up (upstream
+  // counts, uptime percentages, user numbers) does not belong here.
   const stats: StatItem[] = [
-    { end: 50, suffix: '+', label: t('upstream services integrated') },
-    { end: 100, suffix: '+', label: t('model billing support') },
-    { end: 50, suffix: '+', label: t('compatible API routes') },
-    { end: 10, suffix: '+', label: t('scheduling controls') },
+    { end: 3, label: t('compatible API protocols') },
+    { value: 'Claude · GPT', label: t('model families available now') },
+    { end: 1, label: t('key for every client') },
+    { value: t('Per request'), label: t('token-level usage logging') },
   ]
 
   return (
@@ -114,7 +117,11 @@ export function Stats(_props: StatsProps) {
               className='flex flex-col items-center text-center'
             >
               <span className='text-2xl font-bold tracking-tight md:text-3xl'>
-                <Counter end={s.end} suffix={s.suffix} decimals={s.decimals} />
+                {s.value ? (
+                  <span className='tabular-nums'>{s.value}</span>
+                ) : (
+                  <Counter end={s.end ?? 0} suffix={s.suffix} />
+                )}
               </span>
               <span className='text-muted-foreground mt-1.5 text-xs'>
                 {s.label}

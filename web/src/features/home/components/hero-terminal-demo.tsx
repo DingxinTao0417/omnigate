@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 
+import { PUBLIC_API_BASE_URL } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 type AccentTone = 'emerald' | 'amber' | 'blue' | 'violet'
@@ -26,6 +27,9 @@ interface ApiDemoConfig {
   id: string
   label: string
   method: 'POST' | 'GET'
+  /** Path only — shown in the header bar, which truncates. */
+  path: string
+  /** Full URL, used in the copyable curl command. */
   endpoint: string
   headers: string[]
   request: string[]
@@ -75,12 +79,16 @@ const API_DEMOS: ApiDemoConfig[] = [
     id: 'gpt-chat',
     label: 'Chat',
     method: 'POST',
-    endpoint: '/v1/chat/completions',
-    headers: ['"Authorization: Bearer sk-••••"'],
+    path: '/v1/chat/completions',
+    endpoint: `${PUBLIC_API_BASE_URL}/v1/chat/completions`,
+    headers: [
+      '"Authorization: Bearer sk-••••"',
+      '"Content-Type: application/json"',
+    ],
     request: [
-      '"model": "your-model",',
+      '"model": "gpt-5.6-sol",',
       '"messages": [',
-      '  { "role": "user", "content": "..." }',
+      '  { "role": "user", "content": "Explain CAP in one line" }',
       ']',
     ],
     response: [
@@ -98,9 +106,13 @@ const API_DEMOS: ApiDemoConfig[] = [
     id: 'responses',
     label: 'Responses',
     method: 'POST',
-    endpoint: '/v1/responses',
-    headers: ['"Authorization: Bearer sk-••••"'],
-    request: ['"model": "your-model",', '"input": "..."'],
+    path: '/v1/responses',
+    endpoint: `${PUBLIC_API_BASE_URL}/v1/responses`,
+    headers: [
+      '"Authorization: Bearer sk-••••"',
+      '"Content-Type: application/json"',
+    ],
+    request: ['"model": "gpt-5.6-sol",', '"input": "Explain CAP in one line"'],
     response: [
       '{',
       '  "output": [{ "type": "output_text", "text": <text> }],',
@@ -116,13 +128,18 @@ const API_DEMOS: ApiDemoConfig[] = [
     id: 'claude',
     label: 'Claude',
     method: 'POST',
-    endpoint: '/v1/messages',
-    headers: ['"x-api-key: sk-••••"', '"anthropic-version: 2023-06-01"'],
+    path: '/v1/messages',
+    endpoint: `${PUBLIC_API_BASE_URL}/v1/messages`,
+    headers: [
+      '"x-api-key: sk-••••"',
+      '"anthropic-version: 2023-06-01"',
+      '"Content-Type: application/json"',
+    ],
     request: [
-      '"model": "your-model",',
+      '"model": "claude-fable-5",',
       '"max_tokens": 1024,',
       '"messages": [',
-      '  { "role": "user", "content": "..." }',
+      '  { "role": "user", "content": "Explain CAP in one line" }',
       ']',
     ],
     response: [
@@ -135,29 +152,6 @@ const API_DEMOS: ApiDemoConfig[] = [
     tokens: 29,
     latency: 156,
     accent: 'blue',
-  },
-  {
-    id: 'gemini',
-    label: 'Gemini',
-    method: 'POST',
-    endpoint: '/v1beta/models/{model}:generateContent',
-    headers: ['"x-goog-api-key: sk-••••"'],
-    request: [
-      '"contents": [',
-      '  { "role": "user",',
-      '    "parts": [{ "text": "..." }] }',
-      ']',
-    ],
-    response: [
-      '{',
-      '  "candidates": [{ "content": { "parts": [{ "text": <text> }] } }],',
-      '  "usageMetadata": { "totalTokenCount": <tokens> }',
-      '}',
-    ],
-    responseHighlights: ['<text>', '<tokens>'],
-    tokens: 25,
-    latency: 93,
-    accent: 'violet',
   },
 ]
 
@@ -269,7 +263,7 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
               transitioning ? 'opacity-0' : 'opacity-100'
             )}
           >
-            {demo.endpoint}
+            {demo.path}
           </code>
         </div>
 
@@ -451,7 +445,6 @@ function truncateResponse(demo: ApiDemoConfig): string {
     'gpt-chat': 'Chat request routed.',
     responses: 'Response workflow ready.',
     claude: 'Claude message routed.',
-    gemini: 'Gemini request served.',
   }
   return map[demo.id] ?? '...'
 }

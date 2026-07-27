@@ -39,26 +39,31 @@ export function Features(_props: FeaturesProps) {
 
   const features = [
     {
-      id: 'fast',
+      id: 'models',
       num: '01',
-      title: t('Lightning Fast'),
+      title: t('One key, both families'),
       desc: t(
-        'Optimized network architecture ensures millisecond response times'
+        'Claude and GPT behind a single credential — no separate accounts, no separate top-ups'
       ),
       span: 'md:col-span-2',
       icon: <Zap className='size-4 text-blue-400' />,
+      // Only model IDs we can actually verify. Keep this list short and let the
+      // Model Square be the source of truth rather than guessing versions.
       visual: (
-        <div className='mt-4 grid grid-cols-3 gap-2'>
-          {['OpenAI', 'Claude', 'Gemini', 'DeepSeek', 'Qwen', 'Llama'].map(
-            (name) => (
-              <div
-                key={name}
-                className='border-border/30 bg-muted/20 text-muted-foreground flex items-center justify-center rounded-lg border px-3 py-2 text-xs transition-colors duration-300 hover:border-blue-500/30 hover:bg-blue-500/5'
-              >
-                {name}
-              </div>
-            )
-          )}
+        <div className='mt-4 grid grid-cols-2 gap-2'>
+          {[
+            'claude-fable-5',
+            'claude-sonnet-4-5',
+            'gpt-5.6-sol',
+            t('and more'),
+          ].map((name) => (
+            <div
+              key={name}
+              className='border-border/30 bg-muted/20 text-muted-foreground flex items-center justify-center rounded-lg border px-2 py-2 text-center font-mono text-[11px] transition-colors duration-300 hover:border-blue-500/30 hover:bg-blue-500/5'
+            >
+              {name}
+            </div>
+          ))}
         </div>
       ),
     },
@@ -100,31 +105,29 @@ export function Features(_props: FeaturesProps) {
       ),
     },
     {
-      id: 'global',
+      id: 'streaming',
       num: '03',
-      title: t('Global Coverage'),
-      desc: t('Multi-region deployment for stable global access'),
+      title: t('Unbuffered Streaming'),
+      desc: t('Tokens arrive one by one, never batched up by the proxy'),
       span: 'md:col-span-1',
       icon: <Globe className='size-4 text-violet-400' />,
       visual: (
         <div className='mt-4 space-y-2'>
-          {[t('Load Balancing'), t('Rate Limiting'), t('Cost Tracking')].map(
-            (step, i) => (
-              <div key={step} className='flex items-center gap-2'>
-                <div
-                  className={`flex size-6 items-center justify-center rounded-full text-[10px] font-bold ${
-                    i === 1
-                      ? 'border border-blue-500/30 bg-blue-500/20 text-blue-500'
-                      : 'border-border/40 bg-muted text-muted-foreground border'
-                  }`}
-                >
-                  {i + 1}
-                </div>
-                <div className='bg-border/40 h-px flex-1' />
-                <span className='text-muted-foreground text-xs'>{step}</span>
+          {[t('Request'), t('Upstream'), t('Streamed back')].map((step, i) => (
+            <div key={step} className='flex items-center gap-2'>
+              <div
+                className={`flex size-6 items-center justify-center rounded-full text-[10px] font-bold ${
+                  i === 2
+                    ? 'border border-violet-500/30 bg-violet-500/20 text-violet-500'
+                    : 'border-border/40 bg-muted text-muted-foreground border'
+                }`}
+              >
+                {i + 1}
               </div>
-            )
-          )}
+              <div className='bg-border/40 h-px flex-1' />
+              <span className='text-muted-foreground text-xs'>{step}</span>
+            </div>
+          ))}
         </div>
       ),
     },
@@ -159,23 +162,25 @@ export function Features(_props: FeaturesProps) {
   const additionalFeatures = [
     {
       icon: <Gauge className='size-5' strokeWidth={1.5} />,
-      title: t('High Performance'),
-      desc: t('Support for high concurrency with automatic load balancing'),
+      title: t('Cache-aware pricing'),
+      desc: t('Cached input tokens are billed at the discounted rate'),
     },
     {
       icon: <DollarSign className='size-5' strokeWidth={1.5} />,
       title: t('Transparent Billing'),
-      desc: t('Pay-as-you-go with real-time usage monitoring'),
+      desc: t('Pay-as-you-go, with every request itemised in the usage log'),
     },
     {
       icon: <Users className='size-5' strokeWidth={1.5} />,
-      title: t('Team Collaboration'),
-      desc: t('Multi-user management with flexible permission allocation'),
+      title: t('Scoped API keys'),
+      desc: t('Per-key quota, expiry, model scope and IP allowlist'),
     },
     {
       icon: <HeartHandshake className='size-5' strokeWidth={1.5} />,
       title: t('Open Source'),
-      desc: t('Community driven, self-hosted, and extensible'),
+      desc: t(
+        'Built on new-api; our deployment config is public under AGPL-3.0'
+      ),
     },
   ]
 
@@ -187,20 +192,24 @@ export function Features(_props: FeaturesProps) {
             {t('Core Features')}
           </p>
           <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-3xl'>
-            {t('Built for developers,')}
+            {t('One gateway,')}
             <br />
-            {t('designed for scale')}
+            {t('one bill, one log')}
           </h2>
         </AnimateInView>
 
-        {/* Bento grid */}
-        <div className='border-border/40 bg-border/40 grid gap-px overflow-hidden rounded-xl border md:grid-cols-3'>
+        {/*
+          Bento grid. items-stretch + auto-rows-fr keeps the two cards in a row
+          the same height, so a short card (e.g. 02) does not leave a tall gap
+          under itself while its neighbour wraps to the next row.
+        */}
+        <div className='border-border/40 bg-border/40 grid auto-rows-fr items-stretch gap-px overflow-hidden rounded-xl border md:grid-cols-3'>
           {features.map((f, i) => (
             <AnimateInView
               key={f.id}
               delay={i * 100}
               animation='scale-in'
-              className={`bg-background group hover:bg-muted/20 p-7 transition-colors duration-300 md:p-8 ${f.span}`}
+              className={`bg-background group hover:bg-muted/20 flex flex-col p-7 transition-colors duration-300 md:p-8 ${f.span}`}
             >
               <div className='mb-3 flex items-center gap-3'>
                 <span className='border-border/40 bg-muted text-muted-foreground flex size-7 items-center justify-center rounded-md border text-[10px] font-semibold tabular-nums'>
@@ -211,7 +220,8 @@ export function Features(_props: FeaturesProps) {
               <p className='text-muted-foreground text-sm leading-relaxed'>
                 {f.desc}
               </p>
-              {f.visual}
+              {/* mt-auto pins visuals to the bottom so they line up across a row. */}
+              <div className='mt-auto'>{f.visual}</div>
             </AnimateInView>
           ))}
         </div>
