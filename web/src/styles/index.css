@@ -650,3 +650,24 @@ For commercial licensing, please contact support@quantumnous.com
     animation: none !important;
   }
 }
+
+/* ── Console live status panel ──
+ * Sweeps the ring once per poll cycle; the duration is set inline from the
+ * component's poll interval so the two can never drift apart. */
+@keyframes live-poll-ring {
+  from {
+    stroke-dashoffset: 94.2;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.live-poll-ring {
+  animation: live-poll-ring linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-poll-ring {
+    animation: none !important;
+  }
+}

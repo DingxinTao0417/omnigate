@@ -5296,6 +5296,23 @@
     "Change the Base URL and key in Claude Code, Codex, Cherry Studio or your own code": "在 Claude Code、Codex、Cherry Studio 或你自己的代码里改掉 Base URL 和密钥",
     "Check the usage log": "查用量日志",
     "Every request itemised: model, tokens, cache hits, real cost": "每次请求都能查到：模型、token 数、缓存命中、实际花费",
-    "Create a key, change one line of config, and keep using the tools you already have.": "创建一个密钥，改一行配置，你原来的工具照旧用。"
+    "Create a key, change one line of config, and keep using the tools you already have.": "创建一个密钥，改一行配置，你原来的工具照旧用。",
+    "Live service status": "实时服务状态",
+    "Refreshed every {{seconds}}s": "每 {{seconds}} 秒刷新",
+    "Recent success rate": "近期成功率",
+    "In flight": "在途请求",
+    "Avg latency": "平均延迟",
+    "Oldest": "较早",
+    "Newest": "最新",
+    "Metric legend": "指标说明",
+    "No data yet": "暂无数据",
+    "Success rate 100%": "成功率 100%",
+    "Success rate >= 90%": "成功率 ≥ 90%",
+    "Success rate >= 70%": "成功率 ≥ 70%",
+    "Success rate < 70%": "成功率 < 70%",
+    "No requests recorded since the last restart.": "自上次重启后还没有请求记录。",
+    "Live metrics are unavailable right now.": "实时指标暂时不可用。",
+    "{{count}} requests since restart": "重启后共 {{count}} 次请求",
+    "Bars are the most recent requests (green = success, red = failed). The ring tracks the 3s poll cycle, and the pulsing number is how many requests are in flight right now.": "竖条是最近的请求采样（绿色为成功，红色为失败）。圆环对应 3 秒轮询周期，闪烁的数字是当前正在处理的请求数。"
   }
 }

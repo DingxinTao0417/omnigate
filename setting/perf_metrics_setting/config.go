@@ -10,10 +10,16 @@ type PerfMetricsSetting struct {
 }
 
 var perfMetricsSetting = PerfMetricsSetting{
-	Enabled:       true,
-	FlushInterval: 5,
-	BucketTime:    "hour",
-	RetentionDays: 0,
+	Enabled: true,
+	// Flush often enough that the console's minute buckets appear promptly.
+	FlushInterval: 1,
+	// Minute granularity so recent-sample views reflect the last few minutes
+	// rather than averaging a whole hour.
+	BucketTime: "minute",
+	// Minute buckets produce ~60x the rows of hourly ones, and retention of 0
+	// disables cleanup entirely, so an explicit window is required here to keep
+	// the table from growing without bound.
+	RetentionDays: 30,
 }
 
 func init() {

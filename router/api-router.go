@@ -37,6 +37,9 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			perfMetricsRoute.GET("/summary", controller.GetPerfMetricsSummary)
 			perfMetricsRoute.GET("", controller.GetPerfMetrics)
+			// Live counters expose instantaneous instance load, so unlike the
+			// aggregated views they require a signed-in user.
+			perfMetricsRoute.GET("/live", middleware.UserAuth(), controller.GetPerfMetricsLive)
 		}
 		apiRouter.GET("/rankings", middleware.HeaderNavModuleAuth("rankings"), controller.GetRankings)
 		apiRouter.GET("/verification", middleware.EmailVerificationRateLimit(), middleware.TurnstileCheck(), controller.SendEmailVerification)

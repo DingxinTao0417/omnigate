@@ -59,3 +59,26 @@ export type PerfSummaryAllData = {
     models: PerfModelSummary[]
   }
 }
+
+export type PerfLiveSample = {
+  success: boolean
+  latency_ms: number
+  /** Unix milliseconds. */
+  at: number
+}
+
+export type PerfLiveData = {
+  success: boolean
+  message?: string
+  data: {
+    in_flight: number
+    samples: PerfLiveSample[]
+    total_requests: number
+    success_count: number
+    failure_count: number
+    /** 0-100 over retained samples; -1 when there is no data at all. */
+    success_rate: number
+    last_request_at: number
+    server_time: number
+  }
+}

@@ -35,6 +35,16 @@ func GetPerfMetricsSummary(c *gin.Context) {
 	})
 }
 
+// GetPerfMetricsLive returns process-local realtime counters: how many relay
+// requests are in flight right now and the outcome of the most recent ones.
+// Unlike the bucketed summary this is not persisted, so it resets on restart.
+func GetPerfMetricsLive(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    perfmetrics.Live(),
+	})
+}
+
 func GetPerfMetrics(c *gin.Context) {
 	modelName := c.Query("model")
 	if modelName == "" {
