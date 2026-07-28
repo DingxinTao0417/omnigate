@@ -102,7 +102,9 @@ const (
 	LiveOutcomePartial = "partial"
 )
 
-// LiveOutcome classifies this stream for the service-status strip.
+// ClassifyLiveOutcome maps a stream end reason (+ soft-error flag) onto the
+// live-panel three-state outcome. Shared by in-request StreamStatus and by
+// persisted consume-log stream_status payloads.
 //
 //   - failed: hard stream failures (timeout, scanner/panic/ping errors, handler
 //     stop with recorded errors)
@@ -112,29 +114,39 @@ const (
 //
 // EOF alone stays success: many non-OpenAI providers close the body without a
 // [DONE] marker, so treating bare EOF as partial would amber-flood healthy traffic.
-func (s *StreamStatus) LiveOutcome() (outcome string, reason string) {
-	if s == nil {
-		return LiveOutcomeSuccess, ""
-	}
-	reason = string(s.EndReason)
-	switch s.EndReason {
+func ClassifyLiveOutcome(endReason StreamEndReason, hasErrors bool) (outcome string, reason string) {
+	reason = string(endReason)
+	switch endReason {
 	case StreamEndReasonTimeout, StreamEndReasonScannerErr, StreamEndReasonPanic, StreamEndReasonPingFail:
 		return LiveOutcomeFailed, reason
 	case StreamEndReasonClientGone:
 		return LiveOutcomePartial, reason
 	case StreamEndReasonHandlerStop:
-		if s.HasErrors() {
+		if hasErrors {
 			return LiveOutcomeFailed, reason
 		}
 		return LiveOutcomeSuccess, reason
 	case StreamEndReasonDone, StreamEndReasonEOF:
 		return LiveOutcomeSuccess, reason
+	case StreamEndReasonNone, "":
+		if hasErrors {
+			return LiveOutcomeFailed, reason
+		}
+		return LiveOutcomeSuccess, reason
 	default:
-		if s.HasErrors() {
+		if hasErrors {
 			return LiveOutcomeFailed, reason
 		}
 		return LiveOutcomeSuccess, reason
 	}
+}
+
+// LiveOutcome classifies this stream for the service-status strip.
+func (s *StreamStatus) LiveOutcome() (outcome string, reason string) {
+	if s == nil {
+		return LiveOutcomeSuccess, ""
+	}
+	return ClassifyLiveOutcome(s.EndReason, s.HasErrors())
 }
 
 func (s *StreamStatus) Summary() string {

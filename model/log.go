@@ -141,6 +141,42 @@ func GetLogByTokenId(tokenId int) (logs []*Log, err error) {
 	return logs, err
 }
 
+// DefaultUserRecentRelayLimit is the default page size for the "my recent
+// requests" strip on the service-status tab.
+const DefaultUserRecentRelayLimit = 30
+
+// MaxUserRecentRelayLimit caps how many relay logs a user can pull at once.
+const MaxUserRecentRelayLimit = 50
+
+// GetUserRecentRelayLogs returns the newest consume/error logs for a user.
+// Unlike GetUserLogs, it does not strip stream_status from Other — callers
+// must project only safe fields into the response DTO.
+func GetUserRecentRelayLogs(userId int, limit int) ([]*Log, error) {
+	if limit <= 0 {
+		limit = DefaultUserRecentRelayLimit
+	}
+	if limit > MaxUserRecentRelayLimit {
+		limit = MaxUserRecentRelayLimit
+	}
+
+	order := "id desc"
+	if common.UsingLogDatabase(common.DatabaseTypeClickHouse) {
+		order = clickHouseLogOrder("")
+	}
+
+	var logs []*Log
+	err := LOG_DB.Model(&Log{}).
+		Where("user_id = ? AND type IN ?", userId, []int{LogTypeConsume, LogTypeError}).
+		Order(order).
+		Limit(limit).
+		Find(&logs).Error
+	if err != nil {
+		common.SysError("failed to load recent relay logs: " + err.Error())
+		return nil, errors.New("查询日志失败")
+	}
+	return logs, nil
+}
+
 func RecordLog(userId int, logType int, content string) {
 	if logType == LogTypeConsume && !common.LogConsumeEnabled {
 		return

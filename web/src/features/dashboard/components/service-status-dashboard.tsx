@@ -18,12 +18,14 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { GroupStatusPanel } from './overview/group-status-panel'
 import { LiveStatusPanel } from './overview/live-status-panel'
+import { MyRecentRequestsPanel } from './overview/my-recent-requests-panel'
 import { PerformanceHealthPanel } from './overview/performance-health-panel'
 import { SystemHealthPanel } from './overview/system-health-panel'
 
 /**
  * Realtime service status for every signed-in user: live load, dependency
- * health, group availability, and per-model performance summaries.
+ * health, personal request diagnostics, group availability, and per-model
+ * performance summaries.
  */
 export function ServiceStatusDashboard() {
   return (
@@ -32,6 +34,7 @@ export function ServiceStatusDashboard() {
         <LiveStatusPanel />
         <SystemHealthPanel />
       </div>
+      <MyRecentRequestsPanel />
       <GroupStatusPanel />
       <PerformanceHealthPanel />
     </div>

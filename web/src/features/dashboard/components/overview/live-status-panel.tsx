@@ -31,6 +31,10 @@ import {
 } from '@/components/ui/tooltip'
 import { getPerfMetricsLive } from '@/features/performance-metrics/api'
 import {
+  requestOutcomeLabel,
+  requestReasonLabel,
+} from '@/features/dashboard/lib/request-outcome'
+import {
   formatLatency,
   getLiveOutcomeBarClass,
   getLiveOutcomeBarHeight,
@@ -39,10 +43,7 @@ import {
   getSuccessRateLevel,
   getSuccessRateTextClass,
 } from '@/features/performance-metrics/lib/format'
-import type {
-  PerfLiveOutcome,
-  PerfLiveSample,
-} from '@/features/performance-metrics/types'
+import type { PerfLiveSample } from '@/features/performance-metrics/types'
 import { cn } from '@/lib/utils'
 
 /** Poll cadence; the progress ring completes exactly one turn per cycle. */
@@ -50,40 +51,6 @@ const POLL_INTERVAL_MS = 3000
 
 /** Newest-last sample bars. Older entries are dropped to keep the strip legible. */
 const VISIBLE_SAMPLES = 40
-
-/** Map backend reason codes to user-facing labels. */
-function liveReasonLabel(
-  t: (key: string) => string,
-  reason: string | undefined
-): string | null {
-  if (!reason) return null
-  const labels: Record<string, string> = {
-    done: t('Completed'),
-    eof: t('Stream ended'),
-    timeout: t('Stream timeout'),
-    client_gone: t('Client disconnected'),
-    scanner_error: t('Stream read error'),
-    panic: t('Internal stream error'),
-    ping_fail: t('Keepalive failed'),
-    handler_stop: t('Handler stopped'),
-    http_error: t('HTTP error'),
-  }
-  return labels[reason] ?? reason
-}
-
-function liveOutcomeLabel(
-  t: (key: string) => string,
-  outcome: PerfLiveOutcome
-): string {
-  switch (outcome) {
-    case 'success':
-      return t('Success')
-    case 'partial':
-      return t('Incomplete')
-    case 'failed':
-      return t('Failed')
-  }
-}
 
 function LiveStatusLegend() {
   const { t } = useTranslation()
@@ -140,7 +107,7 @@ export function SampleStrip(props: {
     <div className={cn('flex h-8 items-end gap-[3px]', props.className)}>
       {props.samples.map((sample) => {
         const outcome = getLiveSampleOutcome(sample)
-        const reasonLabel = liveReasonLabel(t, sample.reason)
+        const reasonLabel = requestReasonLabel(t, sample.reason)
         // Timestamp + latency + outcome is unique enough in practice; two
         // requests finishing in the same millisecond with identical latency and
         // result are interchangeable for rendering purposes anyway.
@@ -159,7 +126,7 @@ export function SampleStrip(props: {
             />
             <TooltipContent>
               <p className='text-xs'>
-                {liveOutcomeLabel(t, outcome)}
+                {requestOutcomeLabel(t, outcome)}
                 {reasonLabel ? ` · ${reasonLabel}` : ''} ·{' '}
                 {formatLatency(sample.latency_ms)}
               </p>
