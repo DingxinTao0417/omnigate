@@ -180,3 +180,44 @@ func TestStreamStatus_Summary_NilSafe(t *testing.T) {
 	var s *StreamStatus
 	assert.Equal(t, "StreamStatus<nil>", s.Summary())
 }
+
+func TestStreamStatus_LiveOutcome(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		reason   StreamEndReason
+		withErr  bool
+		outcome  string
+		wantCode string
+	}{
+		{name: "done", reason: StreamEndReasonDone, outcome: LiveOutcomeSuccess, wantCode: "done"},
+		{name: "eof", reason: StreamEndReasonEOF, outcome: LiveOutcomeSuccess, wantCode: "eof"},
+		{name: "timeout", reason: StreamEndReasonTimeout, outcome: LiveOutcomeFailed, wantCode: "timeout"},
+		{name: "client_gone", reason: StreamEndReasonClientGone, outcome: LiveOutcomePartial, wantCode: "client_gone"},
+		{name: "scanner_error", reason: StreamEndReasonScannerErr, outcome: LiveOutcomeFailed, wantCode: "scanner_error"},
+		{name: "panic", reason: StreamEndReasonPanic, outcome: LiveOutcomeFailed, wantCode: "panic"},
+		{name: "ping_fail", reason: StreamEndReasonPingFail, outcome: LiveOutcomeFailed, wantCode: "ping_fail"},
+		{name: "handler_stop clean", reason: StreamEndReasonHandlerStop, outcome: LiveOutcomeSuccess, wantCode: "handler_stop"},
+		{name: "handler_stop with errors", reason: StreamEndReasonHandlerStop, withErr: true, outcome: LiveOutcomeFailed, wantCode: "handler_stop"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewStreamStatus()
+			s.SetEndReason(tt.reason, nil)
+			if tt.withErr {
+				s.RecordError("fatal")
+			}
+			outcome, reason := s.LiveOutcome()
+			assert.Equal(t, tt.outcome, outcome)
+			assert.Equal(t, tt.wantCode, reason)
+		})
+	}
+}
+
+func TestStreamStatus_LiveOutcome_NilSafe(t *testing.T) {
+	t.Parallel()
+	var s *StreamStatus
+	outcome, reason := s.LiveOutcome()
+	assert.Equal(t, LiveOutcomeSuccess, outcome)
+	assert.Empty(t, reason)
+}

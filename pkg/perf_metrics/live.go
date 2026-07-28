@@ -12,6 +12,27 @@ import (
 // anything older belongs in the aggregated buckets.
 const liveSampleCapacity = 60
 
+// LiveOutcome is the three-state result shown on the realtime strip.
+type LiveOutcome string
+
+const (
+	LiveOutcomeSuccess LiveOutcome = "success"
+	LiveOutcomeFailed  LiveOutcome = "failed"
+	LiveOutcomePartial LiveOutcome = "partial"
+)
+
+// NormalizeLiveOutcome maps free-form strings onto the three known outcomes.
+// Unknown or empty values fall back to success/failed via the success bool path
+// in callers; here empty becomes success for defensive defaults.
+func NormalizeLiveOutcome(raw string) LiveOutcome {
+	switch LiveOutcome(raw) {
+	case LiveOutcomeSuccess, LiveOutcomeFailed, LiveOutcomePartial:
+		return LiveOutcome(raw)
+	default:
+		return ""
+	}
+}
+
 // liveState holds process-local counters for the realtime service panel. It is
 // deliberately not persisted or shared across nodes: the panel answers "what is
 // this instance doing right now", and aggregated history already lives in the
@@ -26,18 +47,24 @@ type liveState struct {
 	lastAt   time.Time
 	succeed  uint64
 	failured uint64
+	partial  uint64
 }
 
 var live liveState
 
 // LiveSample is one completed relay request, newest last.
 type LiveSample struct {
-	Success   bool  `json:"success"`
-	LatencyMs int64 `json:"latency_ms"`
-	At        int64 `json:"at"`
+	// Outcome is success|failed|partial. Prefer this over Success.
+	Outcome LiveOutcome `json:"outcome"`
+	// Success is true only when Outcome is success (kept for older clients).
+	Success   bool   `json:"success"`
+	LatencyMs int64  `json:"latency_ms"`
+	At        int64  `json:"at"`
 	// Group is the group that actually served the request. Empty when the
 	// request failed before group resolution (e.g. bad token).
 	Group string `json:"group,omitempty"`
+	// Reason is a short machine-readable code for tooltips (timeout, client_gone, …).
+	Reason string `json:"reason,omitempty"`
 }
 
 // LiveGroupSnapshot is the per-group breakdown of the retained samples.
@@ -46,6 +73,7 @@ type LiveGroupSnapshot struct {
 	Samples      []LiveSample `json:"samples"`
 	SuccessCount int          `json:"success_count"`
 	FailureCount int          `json:"failure_count"`
+	PartialCount int          `json:"partial_count"`
 	SuccessRate  float64      `json:"success_rate"`
 	AvgLatencyMs int64        `json:"avg_latency_ms"`
 }
@@ -57,7 +85,9 @@ type LiveSnapshot struct {
 	TotalRequests uint64       `json:"total_requests"`
 	SuccessCount  uint64       `json:"success_count"`
 	FailureCount  uint64       `json:"failure_count"`
-	// SuccessRate over the retained samples, 0-100. -1 when there is no data,
+	PartialCount  uint64       `json:"partial_count"`
+	// SuccessRate over the retained samples, 0-100. Only full successes count;
+	// partial and failed both reduce the rate. -1 when there is no data,
 	// which the frontend renders as the grey "no data" state.
 	SuccessRate   float64 `json:"success_rate"`
 	LastRequestAt int64   `json:"last_request_at"`
@@ -75,11 +105,18 @@ func RequestStarted() {
 
 // RequestFinished decrements the in-flight gauge and records the outcome.
 // group may be empty when the request failed before a group was resolved.
-func RequestFinished(success bool, latencyMs int64, group string) {
+// reason is optional and only used for UI tooltips.
+func RequestFinished(outcome LiveOutcome, latencyMs int64, group, reason string) {
 	// Clamp at zero: a stray Finished without a matching Started would otherwise
 	// make the gauge negative and stay wrong for the process lifetime.
 	if live.inFlight.Add(-1) < 0 {
 		live.inFlight.Store(0)
+	}
+
+	switch outcome {
+	case LiveOutcomeSuccess, LiveOutcomeFailed, LiveOutcomePartial:
+	default:
+		outcome = LiveOutcomeFailed
 	}
 
 	live.mu.Lock()
@@ -89,17 +126,22 @@ func RequestFinished(success bool, latencyMs int64, group string) {
 		live.samples = make([]LiveSample, liveSampleCapacity)
 	}
 	live.samples[live.next] = LiveSample{
-		Success:   success,
+		Outcome:   outcome,
+		Success:   outcome == LiveOutcomeSuccess,
 		LatencyMs: latencyMs,
 		At:        time.Now().UnixMilli(),
 		Group:     group,
+		Reason:    reason,
 	}
 	live.next = (live.next + 1) % liveSampleCapacity
 	live.total++
 	live.lastAt = time.Now()
-	if success {
+	switch outcome {
+	case LiveOutcomeSuccess:
 		live.succeed++
-	} else {
+	case LiveOutcomePartial:
+		live.partial++
+	default:
 		live.failured++
 	}
 }
@@ -114,6 +156,7 @@ func Live() LiveSnapshot {
 		TotalRequests: live.total,
 		SuccessCount:  live.succeed,
 		FailureCount:  live.failured,
+		PartialCount:  live.partial,
 		SuccessRate:   -1,
 		ServerTime:    time.Now().UnixMilli(),
 	}
@@ -133,6 +176,14 @@ func Live() LiveSnapshot {
 		if sample.At == 0 {
 			continue
 		}
+		// Older samples written before outcome existed only set Success.
+		if sample.Outcome == "" {
+			if sample.Success {
+				sample.Outcome = LiveOutcomeSuccess
+			} else {
+				sample.Outcome = LiveOutcomeFailed
+			}
+		}
 		ordered = append(ordered, sample)
 	}
 	snapshot.Samples = ordered
@@ -140,7 +191,7 @@ func Live() LiveSnapshot {
 	if len(ordered) > 0 {
 		succeeded := 0
 		for _, sample := range ordered {
-			if sample.Success {
+			if sample.Outcome == LiveOutcomeSuccess || (sample.Outcome == "" && sample.Success) {
 				succeeded++
 			}
 		}
@@ -176,9 +227,12 @@ func groupSnapshots(ordered []LiveSample) []LiveGroupSnapshot {
 		entry := LiveGroupSnapshot{Group: name, Samples: samples}
 		var latencyTotal int64
 		for _, sample := range samples {
-			if sample.Success {
+			switch sample.Outcome {
+			case LiveOutcomeSuccess:
 				entry.SuccessCount++
-			} else {
+			case LiveOutcomePartial:
+				entry.PartialCount++
+			default:
 				entry.FailureCount++
 			}
 			latencyTotal += sample.LatencyMs

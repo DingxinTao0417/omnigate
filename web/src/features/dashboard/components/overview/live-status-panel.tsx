@@ -32,11 +32,17 @@ import {
 import { getPerfMetricsLive } from '@/features/performance-metrics/api'
 import {
   formatLatency,
+  getLiveOutcomeBarClass,
+  getLiveOutcomeBarHeight,
+  getLiveSampleOutcome,
   getSuccessRateDotClass,
   getSuccessRateLevel,
   getSuccessRateTextClass,
 } from '@/features/performance-metrics/lib/format'
-import type { PerfLiveSample } from '@/features/performance-metrics/types'
+import type {
+  PerfLiveOutcome,
+  PerfLiveSample,
+} from '@/features/performance-metrics/types'
 import { cn } from '@/lib/utils'
 
 /** Poll cadence; the progress ring completes exactly one turn per cycle. */
@@ -45,10 +51,44 @@ const POLL_INTERVAL_MS = 3000
 /** Newest-last sample bars. Older entries are dropped to keep the strip legible. */
 const VISIBLE_SAMPLES = 40
 
+/** Map backend reason codes to user-facing labels. */
+function liveReasonLabel(
+  t: (key: string) => string,
+  reason: string | undefined
+): string | null {
+  if (!reason) return null
+  const labels: Record<string, string> = {
+    done: t('Completed'),
+    eof: t('Stream ended'),
+    timeout: t('Stream timeout'),
+    client_gone: t('Client disconnected'),
+    scanner_error: t('Stream read error'),
+    panic: t('Internal stream error'),
+    ping_fail: t('Keepalive failed'),
+    handler_stop: t('Handler stopped'),
+    http_error: t('HTTP error'),
+  }
+  return labels[reason] ?? reason
+}
+
+function liveOutcomeLabel(
+  t: (key: string) => string,
+  outcome: PerfLiveOutcome
+): string {
+  switch (outcome) {
+    case 'success':
+      return t('Success')
+    case 'partial':
+      return t('Incomplete')
+    case 'failed':
+      return t('Failed')
+  }
+}
+
 function LiveStatusLegend() {
   const { t } = useTranslation()
 
-  const rows = [
+  const rateRows = [
     { dot: 'bg-emerald-500', label: t('Success rate 100%') },
     { dot: 'bg-emerald-400', label: t('Success rate >= 90%') },
     { dot: 'bg-amber-500', label: t('Success rate >= 70%') },
@@ -56,10 +96,24 @@ function LiveStatusLegend() {
     { dot: 'bg-muted-foreground', label: t('No data yet') },
   ]
 
+  const barRows = [
+    { dot: 'bg-emerald-500', label: t('Bar: full success') },
+    { dot: 'bg-amber-500', label: t('Bar: incomplete / interrupted') },
+    { dot: 'bg-red-500', label: t('Bar: failed') },
+  ]
+
   return (
     <div className='space-y-2 text-xs'>
       <div className='space-y-1'>
-        {rows.map((row) => (
+        {rateRows.map((row) => (
+          <div className='flex items-center gap-2' key={row.label}>
+            <span className={cn('size-1.5 rounded-full', row.dot)} />
+            <span>{row.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className='space-y-1 border-t pt-2'>
+        {barRows.map((row) => (
           <div className='flex items-center gap-2' key={row.label}>
             <span className={cn('size-1.5 rounded-full', row.dot)} />
             <span>{row.label}</span>
@@ -68,7 +122,7 @@ function LiveStatusLegend() {
       </div>
       <p className='text-muted-foreground border-t pt-2'>
         {t(
-          'Bars are the most recent requests (green = success, red = failed). The ring tracks the 3s poll cycle, and the pulsing number is how many requests are in flight right now.'
+          'Bars are the most recent requests (green = success, amber = incomplete/interrupted, red = failed). Incomplete often means the client disconnected mid-stream and may reconnect. The ring tracks the 3s poll cycle, and the pulsing number is how many requests are in flight right now.'
         )}
       </p>
     </div>
@@ -84,28 +138,35 @@ export function SampleStrip(props: {
 
   return (
     <div className={cn('flex h-8 items-end gap-[3px]', props.className)}>
-      {props.samples.map((sample) => (
+      {props.samples.map((sample) => {
+        const outcome = getLiveSampleOutcome(sample)
+        const reasonLabel = liveReasonLabel(t, sample.reason)
         // Timestamp + latency + outcome is unique enough in practice; two
         // requests finishing in the same millisecond with identical latency and
         // result are interchangeable for rendering purposes anyway.
-        <Tooltip key={`${sample.at}-${sample.latency_ms}-${sample.success}`}>
-          <TooltipTrigger
-            className={cn(
-              'min-w-[3px] flex-1 rounded-sm transition-opacity hover:opacity-70',
-              sample.success ? 'bg-emerald-500' : 'bg-red-500'
-            )}
-            // Failures are drawn shorter so the strip stays readable in
-            // grayscale and for red/green colour blindness.
-            style={{ height: sample.success ? '100%' : '55%' }}
-          />
-          <TooltipContent>
-            <p className='text-xs'>
-              {sample.success ? t('Success') : t('Failed')} ·{' '}
-              {formatLatency(sample.latency_ms)}
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      ))}
+        return (
+          <Tooltip
+            key={`${sample.at}-${sample.latency_ms}-${outcome}-${sample.reason ?? ''}`}
+          >
+            <TooltipTrigger
+              className={cn(
+                'min-w-[3px] flex-1 rounded-sm transition-opacity hover:opacity-70',
+                getLiveOutcomeBarClass(outcome)
+              )}
+              // Partial/failed bars are shorter so the strip stays readable in
+              // grayscale and for red/green colour blindness.
+              style={{ height: getLiveOutcomeBarHeight(outcome) }}
+            />
+            <TooltipContent>
+              <p className='text-xs'>
+                {liveOutcomeLabel(t, outcome)}
+                {reasonLabel ? ` · ${reasonLabel}` : ''} ·{' '}
+                {formatLatency(sample.latency_ms)}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        )
+      })}
     </div>
   )
 }

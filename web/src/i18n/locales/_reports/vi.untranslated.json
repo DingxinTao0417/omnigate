@@ -14,6 +14,7 @@
   "OpenAI and Anthropic protocols": "OpenAI and Anthropic protocols",
   "Per-request usage and cost log": "Per-request usage and cost log",
   "Pick the format your client speaks": "Pick the format your client speaks",
+  "point it at the gateway": "point it at the gateway",
   "Protocol and model vendor are independent: an OpenAI-format request can target a Claude model. The gateway translates in between.": "Protocol and model vendor are independent: an OpenAI-format request can target a Claude model. The gateway translates in between.",
   "Read the docs": "Read the docs",
   "Replace the base URL and paste the key. No code changes — official SDKs all support overriding the endpoint.": "Replace the base URL and paste the key. No code changes — official SDKs all support overriding the endpoint.",
@@ -22,6 +23,5 @@
   "Speaks OpenAI, Anthropic and Gemini wire formats at once. Point any tool at the matching base URL — the gateway translates, so an OpenAI-only client can still drive Claude.": "Speaks OpenAI, Anthropic and Gemini wire formats at once. Point any tool at the matching base URL — the gateway translates, so an OpenAI-only client can still drive Claude.",
   "Start with one": "Start with one",
   "View models and pricing": "View models and pricing",
-  "Watch the usage log": "Watch the usage log",
-  "point it at the gateway": "point it at the gateway"
+  "Watch the usage log": "Watch the usage log"
 }

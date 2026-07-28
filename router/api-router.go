@@ -25,8 +25,9 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/uptime/status", controller.GetUptimeKumaStatus)
 		apiRouter.GET("/models", middleware.UserAuth(), controller.DashboardListModels)
 		apiRouter.GET("/status/test", middleware.AdminAuth(), controller.TestStatus)
-		// Exposes backing-service reachability and channel counts, so admin only.
-		apiRouter.GET("/status/health", middleware.AdminAuth(), controller.GetSystemHealth)
+		// Dependency reachability and channel counts for the Service Status tab.
+		// Probe error details are stripped for non-admins in the handler.
+		apiRouter.GET("/status/health", middleware.UserAuth(), controller.GetSystemHealth)
 		apiRouter.GET("/notice", controller.GetNotice)
 		apiRouter.GET("/user-agreement", controller.GetUserAgreement)
 		apiRouter.GET("/privacy-policy", controller.GetPrivacyPolicy)

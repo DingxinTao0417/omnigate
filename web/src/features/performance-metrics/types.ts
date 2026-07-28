@@ -60,8 +60,21 @@ export type PerfSummaryAllData = {
   }
 }
 
+/** Three-state live strip outcome; prefer over boolean success when present. */
+export type PerfLiveOutcome = 'success' | 'failed' | 'partial'
+
 export type PerfLiveSample = {
+  /**
+   * True only for a full success. Kept for older backends; prefer `outcome`.
+   */
   success: boolean
+  /**
+   * success | failed | partial. Partial covers mid-stream client disconnects
+   * (common with client-side reconnect) that still opened as HTTP 200.
+   */
+  outcome?: PerfLiveOutcome
+  /** Short machine-readable code for tooltips (timeout, client_gone, …). */
+  reason?: string
   latency_ms: number
   /** Unix milliseconds. */
   at: number
@@ -98,6 +111,7 @@ export type PerfLiveGroup = {
   samples: PerfLiveSample[]
   success_count: number
   failure_count: number
+  partial_count?: number
   success_rate: number
   avg_latency_ms: number
 }
@@ -111,6 +125,7 @@ export type PerfLiveData = {
     total_requests: number
     success_count: number
     failure_count: number
+    partial_count?: number
     /** 0-100 over retained samples; -1 when there is no data at all. */
     success_rate: number
     last_request_at: number

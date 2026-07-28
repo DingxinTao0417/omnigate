@@ -20,6 +20,7 @@ func resetLiveState() {
 	live.total = 0
 	live.succeed = 0
 	live.failured = 0
+	live.partial = 0
 	live.lastAt = time.Time{}
 }
 
@@ -41,10 +42,10 @@ func TestInFlightTracksStartedMinusFinished(t *testing.T) {
 	RequestStarted()
 	require.EqualValues(t, 2, Live().InFlight)
 
-	RequestFinished(true, 10, "default")
+	RequestFinished(LiveOutcomeSuccess, 10, "default", "")
 	assert.EqualValues(t, 1, Live().InFlight)
 
-	RequestFinished(true, 10, "default")
+	RequestFinished(LiveOutcomeSuccess, 10, "default", "")
 	assert.EqualValues(t, 0, Live().InFlight)
 }
 
@@ -53,7 +54,7 @@ func TestInFlightNeverGoesNegative(t *testing.T) {
 
 	// An unmatched Finished (e.g. a handler that reported twice) must not leave
 	// the gauge negative for the rest of the process lifetime.
-	RequestFinished(false, 5, "")
+	RequestFinished(LiveOutcomeFailed, 5, "", "http_error")
 
 	assert.EqualValues(t, 0, Live().InFlight)
 }
@@ -62,11 +63,11 @@ func TestLiveSuccessRateReflectsRetainedSamples(t *testing.T) {
 	resetLiveState()
 
 	RequestStarted()
-	RequestFinished(true, 10, "default")
+	RequestFinished(LiveOutcomeSuccess, 10, "default", "")
 	RequestStarted()
-	RequestFinished(true, 10, "default")
+	RequestFinished(LiveOutcomeSuccess, 10, "default", "")
 	RequestStarted()
-	RequestFinished(false, 10, "default")
+	RequestFinished(LiveOutcomeFailed, 10, "default", "http_error")
 
 	snapshot := Live()
 
@@ -77,6 +78,30 @@ func TestLiveSuccessRateReflectsRetainedSamples(t *testing.T) {
 	assert.InDelta(t, 66.67, snapshot.SuccessRate, 0.01)
 }
 
+func TestLivePartialDoesNotCountAsSuccess(t *testing.T) {
+	resetLiveState()
+
+	RequestStarted()
+	RequestFinished(LiveOutcomeSuccess, 10, "default", "done")
+	RequestStarted()
+	RequestFinished(LiveOutcomePartial, 20, "default", "client_gone")
+	RequestStarted()
+	RequestFinished(LiveOutcomeFailed, 30, "default", "timeout")
+
+	snapshot := Live()
+
+	require.Len(t, snapshot.Samples, 3)
+	assert.EqualValues(t, 1, snapshot.SuccessCount)
+	assert.EqualValues(t, 1, snapshot.PartialCount)
+	assert.EqualValues(t, 1, snapshot.FailureCount)
+	assert.InDelta(t, 33.33, snapshot.SuccessRate, 0.01)
+
+	lastPartial := snapshot.Samples[1]
+	assert.Equal(t, LiveOutcomePartial, lastPartial.Outcome)
+	assert.False(t, lastPartial.Success)
+	assert.Equal(t, "client_gone", lastPartial.Reason)
+}
+
 func TestLiveSamplesAreOldestFirstAndBounded(t *testing.T) {
 	resetLiveState()
 
@@ -84,7 +109,7 @@ func TestLiveSamplesAreOldestFirstAndBounded(t *testing.T) {
 	total := liveSampleCapacity + 5
 	for i := 0; i < total; i++ {
 		RequestStarted()
-		RequestFinished(true, int64(i), "default")
+		RequestFinished(LiveOutcomeSuccess, int64(i), "default", "")
 	}
 
 	snapshot := Live()
@@ -106,7 +131,7 @@ func TestConcurrentRequestsKeepGaugeConsistent(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			RequestStarted()
-			RequestFinished(true, 1, "default")
+			RequestFinished(LiveOutcomeSuccess, 1, "default", "")
 		}()
 	}
 	wg.Wait()
@@ -121,16 +146,16 @@ func TestLiveGroupsSplitSamplesByServingGroup(t *testing.T) {
 
 	// vip: 2 ok, 1 failed. default: 1 ok.
 	for _, sample := range []struct {
-		ok    bool
-		group string
+		outcome LiveOutcome
+		group   string
 	}{
-		{true, "vip"},
-		{true, "vip"},
-		{false, "vip"},
-		{true, "default"},
+		{LiveOutcomeSuccess, "vip"},
+		{LiveOutcomeSuccess, "vip"},
+		{LiveOutcomeFailed, "vip"},
+		{LiveOutcomeSuccess, "default"},
 	} {
 		RequestStarted()
-		RequestFinished(sample.ok, 20, sample.group)
+		RequestFinished(sample.outcome, 20, sample.group, "")
 	}
 
 	groups := Live().Groups
@@ -147,13 +172,29 @@ func TestLiveGroupsSplitSamplesByServingGroup(t *testing.T) {
 	assert.Equal(t, 1, groups[1].SuccessCount)
 }
 
+func TestLiveGroupsCountPartialSeparately(t *testing.T) {
+	resetLiveState()
+
+	RequestStarted()
+	RequestFinished(LiveOutcomeSuccess, 10, "vip", "done")
+	RequestStarted()
+	RequestFinished(LiveOutcomePartial, 15, "vip", "client_gone")
+
+	groups := Live().Groups
+	require.Len(t, groups, 1)
+	assert.Equal(t, 1, groups[0].SuccessCount)
+	assert.Equal(t, 1, groups[0].PartialCount)
+	assert.Equal(t, 0, groups[0].FailureCount)
+	assert.InDelta(t, 50.0, groups[0].SuccessRate, 0.01)
+}
+
 func TestLiveGroupsOmitSamplesWithoutAGroup(t *testing.T) {
 	resetLiveState()
 
 	// A request rejected before group resolution (e.g. invalid token) must not
 	// be attributed to any group, but still counts in the overall totals.
 	RequestStarted()
-	RequestFinished(false, 3, "")
+	RequestFinished(LiveOutcomeFailed, 3, "", "http_error")
 
 	snapshot := Live()
 

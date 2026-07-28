@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { PerfLiveOutcome, PerfLiveSample } from '../types'
+
 export function formatThroughput(tps: number): string {
   if (!Number.isFinite(tps) || tps <= 0) return '—'
   if (tps >= 1_000) return `${(tps / 1_000).toFixed(1)}K t/s`
@@ -95,4 +97,37 @@ export function getSuccessRateDotClass(rate: number): string {
 
 export function getSuccessRateColor(rate: number): string {
   return SUCCESS_RATE_HEX_COLOR[getSuccessRateLevel(rate)]
+}
+
+/** Resolve a sample's three-state outcome with a boolean fallback. */
+export function getLiveSampleOutcome(sample: PerfLiveSample): PerfLiveOutcome {
+  if (
+    sample.outcome === 'success' ||
+    sample.outcome === 'failed' ||
+    sample.outcome === 'partial'
+  ) {
+    return sample.outcome
+  }
+  return sample.success ? 'success' : 'failed'
+}
+
+const LIVE_OUTCOME_BAR_CLASS: Record<PerfLiveOutcome, string> = {
+  success: 'bg-emerald-500',
+  partial: 'bg-amber-500',
+  failed: 'bg-red-500',
+}
+
+/** Bar height: full / mid / short so colour-blind users can still tell states. */
+const LIVE_OUTCOME_BAR_HEIGHT: Record<PerfLiveOutcome, string> = {
+  success: '100%',
+  partial: '75%',
+  failed: '55%',
+}
+
+export function getLiveOutcomeBarClass(outcome: PerfLiveOutcome): string {
+  return LIVE_OUTCOME_BAR_CLASS[outcome]
+}
+
+export function getLiveOutcomeBarHeight(outcome: PerfLiveOutcome): string {
+  return LIVE_OUTCOME_BAR_HEIGHT[outcome]
 }

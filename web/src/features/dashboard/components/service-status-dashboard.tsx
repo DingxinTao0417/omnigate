@@ -16,31 +16,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ROLE } from '@/lib/roles'
-import { useAuthStore } from '@/stores/auth-store'
-
 import { GroupStatusPanel } from './overview/group-status-panel'
 import { LiveStatusPanel } from './overview/live-status-panel'
 import { PerformanceHealthPanel } from './overview/performance-health-panel'
 import { SystemHealthPanel } from './overview/system-health-panel'
 
 /**
- * Realtime service status. The live and group panels are open to every
- * signed-in user; the dependency and per-model panels stay admin-only because
- * they expose infrastructure reachability and cross-tenant model performance.
+ * Realtime service status for every signed-in user: live load, dependency
+ * health, group availability, and per-model performance summaries.
  */
 export function ServiceStatusDashboard() {
-  const userRole = useAuthStore((state) => state.auth.user?.role)
-  const isAdmin = Boolean(userRole && userRole >= ROLE.ADMIN)
-
   return (
     <div className='space-y-3 sm:space-y-4'>
       <div className='grid gap-3 sm:gap-4 lg:grid-cols-2'>
         <LiveStatusPanel />
-        {isAdmin && <SystemHealthPanel />}
+        <SystemHealthPanel />
       </div>
       <GroupStatusPanel />
-      {isAdmin && <PerformanceHealthPanel />}
+      <PerformanceHealthPanel />
     </div>
   )
 }

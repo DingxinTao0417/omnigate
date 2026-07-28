@@ -34,7 +34,9 @@ import type {
   HealthComponent,
   HealthComponentStatus,
 } from '@/features/performance-metrics/types'
+import { ROLE } from '@/lib/roles'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth-store'
 
 const HEALTH_POLL_INTERVAL_MS = 15000
 
@@ -103,6 +105,8 @@ function DependencyRow(props: {
 
 export function SystemHealthPanel() {
   const { t } = useTranslation()
+  const userRole = useAuthStore((state) => state.auth.user?.role)
+  const isAdmin = Boolean(userRole && userRole >= ROLE.ADMIN)
 
   const healthQuery = useQuery({
     queryKey: ['system-health'],
@@ -145,6 +149,32 @@ export function SystemHealthPanel() {
     health.database.status === 'ok' &&
     (health.redis.status === 'ok' || health.redis.status === 'disabled')
 
+  const channelSummary = (
+    <>
+      <div className='flex items-center gap-2 text-sm'>
+        <Zap className='text-muted-foreground size-4' />
+        <span>{t('Channels')}</span>
+      </div>
+      <div className='flex items-center gap-3 text-xs'>
+        <span className='text-emerald-600 tabular-nums dark:text-emerald-400'>
+          {t('{{count}} enabled', { count: channels.enabled })}
+        </span>
+        {disabled > 0 && (
+          <span
+            className={cn(
+              'tabular-nums',
+              channels.auto_disabled > 0
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-muted-foreground'
+            )}
+          >
+            {t('{{count}} disabled', { count: disabled })}
+          </span>
+        )}
+      </div>
+    </>
+  )
+
   return (
     <div className='rounded-xl border p-5'>
       <div className='flex items-center gap-2'>
@@ -174,32 +204,19 @@ export function SystemHealthPanel() {
         />
       </div>
 
-      <Link
-        className='hover:bg-muted/40 mt-3 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors'
-        to='/channels'
-      >
-        <div className='flex items-center gap-2 text-sm'>
-          <Zap className='text-muted-foreground size-4' />
-          <span>{t('Channels')}</span>
+      {/* Channels management is admin-only; regular users only see counts. */}
+      {isAdmin ? (
+        <Link
+          className='hover:bg-muted/40 mt-3 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors'
+          to='/channels'
+        >
+          {channelSummary}
+        </Link>
+      ) : (
+        <div className='mt-3 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5'>
+          {channelSummary}
         </div>
-        <div className='flex items-center gap-3 text-xs'>
-          <span className='text-emerald-600 tabular-nums dark:text-emerald-400'>
-            {t('{{count}} enabled', { count: channels.enabled })}
-          </span>
-          {disabled > 0 && (
-            <span
-              className={cn(
-                'tabular-nums',
-                channels.auto_disabled > 0
-                  ? 'text-red-600 dark:text-red-400'
-                  : 'text-muted-foreground'
-              )}
-            >
-              {t('{{count}} disabled', { count: disabled })}
-            </span>
-          )}
-        </div>
-      </Link>
+      )}
 
       {channels.auto_disabled > 0 && (
         <p className='text-muted-foreground mt-2 text-xs'>

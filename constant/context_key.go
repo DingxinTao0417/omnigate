@@ -72,4 +72,12 @@ const (
 	// fallback in authHelper (finishAdminAudit) skips its record to avoid
 	// duplicate entries.
 	ContextKeyAuditLogged ContextKey = "audit_logged"
+
+	// ContextKeyRelayLiveOutcome is the live-panel outcome for this request:
+	// "success" | "failed" | "partial". Set by stream/relay handlers so
+	// LiveMetrics can rank incomplete streams higher than bare HTTP status.
+	ContextKeyRelayLiveOutcome ContextKey = "relay_live_outcome"
+	// ContextKeyRelayLiveReason is a short machine-readable code (e.g.
+	// timeout, client_gone) shown in the live sample tooltip.
+	ContextKeyRelayLiveReason ContextKey = "relay_live_reason"
 )

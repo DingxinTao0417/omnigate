@@ -307,4 +307,13 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 	} else {
 		logger.LogError(c, fmt.Sprintf("stream ended: %s, received=%d", info.StreamStatus.Summary(), info.ReceivedResponseCount))
 	}
+
+	// Tag the gin context so LiveMetrics can distinguish incomplete streams
+	// (timeout / client disconnect) from true HTTP successes after a 200 open.
+	if outcome, reason := info.StreamStatus.LiveOutcome(); outcome != "" {
+		common.SetContextKey(c, constant.ContextKeyRelayLiveOutcome, outcome)
+		if reason != "" {
+			common.SetContextKey(c, constant.ContextKeyRelayLiveReason, reason)
+		}
+	}
 }

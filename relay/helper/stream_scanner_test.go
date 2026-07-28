@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -380,6 +381,40 @@ func TestStreamScannerHandler_PingDisabledByRelayInfo(t *testing.T) {
 }
 
 // ---------- StreamStatus integration ----------
+
+func TestStreamScannerHandler_SetsLiveOutcomeOnContext(t *testing.T) {
+	t.Parallel()
+
+	body := buildSSEBody(2)
+	c, resp, info := setupStreamTest(t, strings.NewReader(body))
+
+	StreamScannerHandler(c, resp, info, func(data string, sr *StreamResult) {})
+
+	assert.Equal(t, relaycommon.LiveOutcomeSuccess, common.GetContextKeyString(c, constant.ContextKeyRelayLiveOutcome))
+	assert.Equal(t, string(relaycommon.StreamEndReasonDone), common.GetContextKeyString(c, constant.ContextKeyRelayLiveReason))
+}
+
+func TestStreamScannerHandler_SetsPartialLiveOutcomeOnClientGone(t *testing.T) {
+	t.Parallel()
+
+	// Slow upstream so the main select can observe an already-cancelled client.
+	pr, pw := io.Pipe()
+	t.Cleanup(func() { _ = pw.Close() })
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // client already gone when the handler starts
+	c.Request = httptest.NewRequestWithContext(ctx, http.MethodPost, "/v1/chat/completions", nil)
+
+	resp := &http.Response{Body: pr}
+	info := &relaycommon.RelayInfo{ChannelMeta: &relaycommon.ChannelMeta{}}
+
+	StreamScannerHandler(c, resp, info, func(data string, sr *StreamResult) {})
+
+	assert.Equal(t, relaycommon.LiveOutcomePartial, common.GetContextKeyString(c, constant.ContextKeyRelayLiveOutcome))
+	assert.Equal(t, string(relaycommon.StreamEndReasonClientGone), common.GetContextKeyString(c, constant.ContextKeyRelayLiveReason))
+}
 
 func TestStreamScannerHandler_StreamStatus_DoneReason(t *testing.T) {
 	t.Parallel()

@@ -94,6 +94,49 @@ func (s *StreamStatus) IsNormalEnd() bool {
 		s.EndReason == StreamEndReasonHandlerStop
 }
 
+// Live outcome values written into the gin context for the realtime panel.
+// Kept as plain strings so middleware/perf packages do not import this type.
+const (
+	LiveOutcomeSuccess = "success"
+	LiveOutcomeFailed  = "failed"
+	LiveOutcomePartial = "partial"
+)
+
+// LiveOutcome classifies this stream for the service-status strip.
+//
+//   - failed: hard stream failures (timeout, scanner/panic/ping errors, handler
+//     stop with recorded errors)
+//   - partial: client disconnected mid-stream (common for client-side retry /
+//     reconnect flows that still looked like HTTP 200)
+//   - success: clean completion (done / clean eof / clean handler stop)
+//
+// EOF alone stays success: many non-OpenAI providers close the body without a
+// [DONE] marker, so treating bare EOF as partial would amber-flood healthy traffic.
+func (s *StreamStatus) LiveOutcome() (outcome string, reason string) {
+	if s == nil {
+		return LiveOutcomeSuccess, ""
+	}
+	reason = string(s.EndReason)
+	switch s.EndReason {
+	case StreamEndReasonTimeout, StreamEndReasonScannerErr, StreamEndReasonPanic, StreamEndReasonPingFail:
+		return LiveOutcomeFailed, reason
+	case StreamEndReasonClientGone:
+		return LiveOutcomePartial, reason
+	case StreamEndReasonHandlerStop:
+		if s.HasErrors() {
+			return LiveOutcomeFailed, reason
+		}
+		return LiveOutcomeSuccess, reason
+	case StreamEndReasonDone, StreamEndReasonEOF:
+		return LiveOutcomeSuccess, reason
+	default:
+		if s.HasErrors() {
+			return LiveOutcomeFailed, reason
+		}
+		return LiveOutcomeSuccess, reason
+	}
+}
+
 func (s *StreamStatus) Summary() string {
 	if s == nil {
 		return "StreamStatus<nil>"

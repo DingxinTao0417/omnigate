@@ -38,12 +38,19 @@ type systemHealthResponse struct {
 
 // GetSystemHealth probes the backing services the gateway depends on. Each probe
 // is timed so the console can distinguish "reachable but slow" from "down".
+// Available to every signed-in user; raw probe error strings stay admin-only so
+// connection details are not leaked to regular accounts.
 func GetSystemHealth(c *gin.Context) {
 	response := systemHealthResponse{
 		Database:   probeDatabase(),
 		Redis:      probeRedis(),
 		Channels:   probeChannels(),
 		ServerTime: time.Now().UnixMilli(),
+	}
+
+	if c.GetInt("role") < common.RoleAdminUser {
+		response.Database.Detail = ""
+		response.Redis.Detail = ""
 	}
 
 	c.JSON(http.StatusOK, gin.H{
