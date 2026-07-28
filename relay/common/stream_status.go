@@ -128,7 +128,9 @@ func ClassifyLiveOutcome(endReason StreamEndReason, hasErrors bool) (outcome str
 		return LiveOutcomeSuccess, reason
 	case StreamEndReasonDone, StreamEndReasonEOF:
 		return LiveOutcomeSuccess, reason
-	case StreamEndReasonNone, "":
+	case StreamEndReasonNone:
+		// StreamEndReasonNone is already "" — do not also case "" or the
+		// compiler reports a duplicate constant case.
 		if hasErrors {
 			return LiveOutcomeFailed, reason
 		}
