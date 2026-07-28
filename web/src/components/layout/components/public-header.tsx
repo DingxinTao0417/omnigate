@@ -190,12 +190,12 @@ export function PublicHeader(props: PublicHeaderProps) {
                 : 'h-16 px-2'
             )}
           >
-            {/* Logo */}
+            {/* Brand: larger wordmark with professional indigo→violet gradient */}
             <Link
               to={homeUrl}
               className='group flex shrink-0 items-center gap-2.5'
             >
-              <div className='flex size-7 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
+              <div className='flex size-8 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105 sm:size-9'>
                 {loading ? (
                   <Skeleton className='size-full rounded-lg' />
                 ) : customLogo ? (
@@ -209,8 +209,12 @@ export function PublicHeader(props: PublicHeaderProps) {
                   />
                 )}
               </div>
-              <span className='text-sm font-semibold tracking-tight'>
-                {loading ? <Skeleton className='h-4 w-16' /> : displaySiteName}
+              <span className='bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-lg font-bold tracking-[-0.02em] text-transparent sm:text-xl dark:from-blue-400 dark:via-indigo-400 dark:to-violet-400'>
+                {loading ? (
+                  <Skeleton className='h-5 w-24' />
+                ) : (
+                  displaySiteName
+                )}
               </span>
             </Link>
 

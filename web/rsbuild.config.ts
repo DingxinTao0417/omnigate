@@ -10,10 +10,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ envMode }) => {
   const env = loadEnv({ mode: envMode, prefixes: ['VITE_'] })
+  // Prefer an explicit backend URL. Defaulting to :3000 while `rsbuild dev`
+  // also binds :3000 makes /api proxy to itself and hang forever (blank SPA
+  // while root beforeLoad waits on setup/auth).
   const serverUrl =
     process.env.VITE_REACT_APP_SERVER_URL ||
     env.rawPublicVars.VITE_REACT_APP_SERVER_URL ||
-    'http://localhost:3000'
+    'http://127.0.0.1:3001'
 
   const isProd = envMode === 'production'
   const devProxy = Object.fromEntries(

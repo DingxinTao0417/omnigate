@@ -139,6 +139,38 @@ function setSetupStatusCache(value: boolean): void {
 // 内存中的标记，避免同一会话中重复检查
 let setupStatusChecked = getSetupStatusFromCache()
 
+/** When the API proxy is misconfigured (or the backend is down), hung /api
+ *  calls must not block the entire SPA from mounting — otherwise users see a
+ *  blank white page with no error UI. */
+const BEFORE_LOAD_TIMEOUT_MS = 4000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[root.beforeLoad] ${label} timed out after ${ms}ms — continuing without it`
+        )
+      }
+      resolve(null)
+    }, ms)
+    promise
+      .then((value) => {
+        window.clearTimeout(timer)
+        resolve(value)
+      })
+      .catch((error) => {
+        window.clearTimeout(timer)
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.warn(`[root.beforeLoad] ${label} failed`, error)
+        }
+        resolve(null)
+      })
+  })
+}
+
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
 }>()({
@@ -152,26 +184,30 @@ export const Route = createRootRouteWithContext<{
     const pathname = location?.pathname || ''
     const needsSetupCheck =
       !setupStatusChecked && !pathname.startsWith('/setup')
-    const authBootstrap = bootstrapAuthentication()
+    const authBootstrap = withTimeout(
+      bootstrapAuthentication(),
+      BEFORE_LOAD_TIMEOUT_MS,
+      'auth bootstrap'
+    )
 
     // 只检查 setup 状态（如果需要）
     if (needsSetupCheck) {
       const [status] = await Promise.all([
-        getSetupStatus().catch((error) => {
-          if (import.meta.env.DEV) {
-            // eslint-disable-next-line no-console
-            console.warn('[root.beforeLoad] setup status check failed', error)
-          }
-          return null
-        }),
+        withTimeout(getSetupStatus(), BEFORE_LOAD_TIMEOUT_MS, 'setup status'),
         authBootstrap,
       ])
 
       if (status?.success && status.data && !status.data.status) {
         throw redirect({ to: '/setup' })
       }
-      setupStatusChecked = true
-      setSetupStatusCache(true)
+      // Only cache a definitive "setup done" answer; timeouts must recheck later.
+      if (status?.success && status.data?.status) {
+        setupStatusChecked = true
+        setSetupStatusCache(true)
+      } else if (status === null) {
+        // Backend unreachable: do not redirect to setup, allow UI to render.
+        setupStatusChecked = true
+      }
     } else {
       await authBootstrap
     }

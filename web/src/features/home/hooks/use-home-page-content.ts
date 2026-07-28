@@ -46,14 +46,24 @@ export function useHomePageContent(): HomePageContentResult {
       }
 
       try {
-        const response = await getHomePageContent()
-        const { success, data } = response
+        // Bound wait: if the API proxy hangs (common when the dev server
+        // proxies /api to itself with no Go backend), fall through to the
+        // built-in landing page instead of spinning forever.
+        const response = await Promise.race([
+          getHomePageContent(),
+          new Promise<null>((resolve) => {
+            window.setTimeout(() => resolve(null), 4000)
+          }),
+        ])
 
         if (!mounted) return
 
-        if (success && data) {
-          setContent(data)
-          localStorage.setItem(STORAGE_KEY, data)
+        if (response && response.success && response.data) {
+          setContent(response.data)
+          localStorage.setItem(STORAGE_KEY, response.data)
+        } else if (response === null) {
+          // Timeout — keep any cache, otherwise show the default landing.
+          if (!cached) setContent('')
         } else {
           // Clear content if API returns empty
           setContent('')
@@ -63,7 +73,10 @@ export function useHomePageContent(): HomePageContentResult {
         if (!mounted) return
         // eslint-disable-next-line no-console
         console.error('Failed to load home page content:', error)
-        toast.error(i18next.t('Failed to load home page content'))
+        // Don't toast on pure network failure during local frontend-only dev.
+        if (import.meta.env.PROD) {
+          toast.error(i18next.t('Failed to load home page content'))
+        }
       } finally {
         if (mounted) {
           setIsLoaded(true)
