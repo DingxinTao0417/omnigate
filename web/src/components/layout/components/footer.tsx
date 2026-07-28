@@ -224,7 +224,10 @@ export function Footer(props: FooterProps) {
 
   const displayColumns = props.columns ?? fallbackColumns
 
-  if (footerHtml) {
+  // Custom HTML from System Settings. Skip on compact homepage so we only
+  // show the single attribution line the landing page expects (otherwise the
+  // admin-configured snippet + attribution appear side-by-side as two pills).
+  if (footerHtml && !props.compact) {
     return (
       <footer
         className={cn(
