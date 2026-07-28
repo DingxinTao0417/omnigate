@@ -61,7 +61,7 @@ curl ${ctx.baseUrl}/v1/chat/completions \\
 - 只想在图形界面里聊天，看[桌面与 GUI 客户端](/docs/gui-clients)。
 - 想把 Claude Code 用到极致，看[Claude Code 进阶](/docs/claude-code-advanced)。
 
-跑通之后建议回来看一眼**站主实践**那一组：[AI 使用心得](/docs/insights)、[我的 CLAUDE.md](/docs/my-claude-md)、[我的 settings.json](/docs/my-settings)。那几篇是主观经验和真实在用的配置，不是操作步骤——**现在读用不上，用过几天再读会省下不少钱和返工**。
+跑通之后建议回来看一眼**站主实践**那一组：[AI 使用心得](/docs/insights)、[我的用法](/docs/my-usage)、[我的 CLAUDE.md](/docs/my-claude-md)、[我的 settings.json](/docs/my-settings)。那几篇是主观经验和真实在用的配置，不是操作步骤——**现在读用不上，用过几天再读会省下不少钱和返工**。
 
 ## 关于计费
 

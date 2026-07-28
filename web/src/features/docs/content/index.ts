@@ -24,7 +24,7 @@ import { concepts, introduction } from './getting-started'
 import { claudeCode, prerequisites } from './install-cli'
 import { codex, opencode } from './install-codex'
 import { guiClients, otherClis } from './other-tools'
-import { insights, myClaudeMd, mySettings } from './practice'
+import { insights, myClaudeMd, mySettings, myUsage } from './practice'
 import { settingsJson } from './settings'
 import { statusline } from './statusline'
 import { troubleshooting } from './troubleshooting'
@@ -62,7 +62,7 @@ export const DOC_GROUPS: DocGroup[] = [
   {
     id: 'practice',
     titleKey: 'Site Owner Practice',
-    chapters: [insights, myClaudeMd, mySettings],
+    chapters: [insights, myUsage, myClaudeMd, mySettings],
   },
 ]
 

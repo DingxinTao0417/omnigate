@@ -23,3 +23,4 @@ For commercial licensing, please contact support@quantumnous.com
 export { insights } from './insights'
 export { myClaudeMd } from './my-claude-md'
 export { mySettings } from './my-settings'
+export { myUsage } from './my-usage'
